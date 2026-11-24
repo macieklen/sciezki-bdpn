@@ -92,3 +92,8 @@ Pliki multimediów mają w nazwie skrót treści źródła, więc kolejne buildy
 tylko zmienione pliki, a aplikacja pobiera tylko to, co się zmieniło. Każdy plik
 w manifeście ma przypisany język (`null` = wspólny), żeby pobierać tylko nagrania
 w wybranym języku.
+
+## Licencja
+
+Kod: [MIT](LICENSE). Licencja nie obejmuje treści ścieżek (tekstów, zdjęć, nagrań)
+ani znaku Bieszczadzkiego Parku Narodowego.

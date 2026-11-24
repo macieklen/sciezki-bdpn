@@ -57,12 +57,12 @@ programistyczne i GIS (QGIS, Python). Komunikacja po polsku, zwracamy się „Pa
 1. ✅ Schemat danych, geometria, build treści z walidacją, ścieżka przykładowa (fikcyjna).
 2. ✅ Aplikacja: lista ścieżek, ścieżka (wybór wejścia i celu, przystanki na trasie
    i odnogach), przystanek (galeria, notka kierunkowa, odtwarzacz, nawigacja).
-3. ⏭ **Tryb spaceru (następny):** ekran mapy MapLibre z trasą, przystankami (odwiedzone /
-   następny / pozostałe) i pozycją; panel „następny przystanek · odległość” + mini-odtwarzacz;
-   `LocationService` + symulator spaceru w przeglądarce (GPX, szum, prędkość); logika
-   śledzenia na grafie w `packages/core` z testami (scenariusze: start z każdego wejścia,
-   wejście w ślepą odnogę i powrót, zawrócenie, minięcie rozwidlenia); pierwsza wersja
-   pipeline'u kafelków (Python) dla obszaru parku.
+3. ✅ Tryb spaceru: `Tracker` w `packages/core` (dopasowanie do grafu, histereza przy
+   rozwidleniach, grupy, zapowiedź rozwidlenia) z testami scenariuszy; symulator
+   (`simulateWalk`, GPX); ekran `/sciezka/<id>/spacer` z mapą MapLibre (na razie bez
+   podkładu), panelem następnego przystanku, listą „Jestem przy przystanku”;
+   `?zrodlo=sym` włącza panel symulatora.
+   ⏭ Do omówienia z właścicielem: pipeline kafelków mapy (Python/GDAL, Planetiler, NMT).
 4. Offline: pobieranie paczek, aktualizacje przez manifest, service worker / PWA.
 5. Capacitor: lokalizacja w tle, powiadomienia, natywne audio, testy w terenie.
 6. Publikacja w sklepach.

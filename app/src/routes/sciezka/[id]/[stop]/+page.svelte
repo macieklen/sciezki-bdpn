@@ -5,6 +5,7 @@
   import { loadTexts, trailFileUrl } from '$lib/content';
   import { i18n, t } from '$lib/i18n.svelte';
   import { defaultEnd, defaultStart, findRoute, isOppositeToGuide } from '$lib/route';
+  import { walk } from '$lib/walk.svelte';
   import AudioPlayer from '$lib/components/AudioPlayer.svelte';
   import Icon from '$lib/components/Icon.svelte';
 
@@ -28,6 +29,7 @@
   const opposite = $derived(isOppositeToGuide(trail, route, stop.id));
   const query = $derived(page.url.search);
   const trailHref = $derived(`${base}/sciezka/${trail.id}${query}`);
+  const walkHref = $derived(`${base}/sciezka/${trail.id}/spacer${query}`);
   const stopHref = (id: string) => `${base}/sciezka/${trail.id}/${id}${query}`;
 
   // Galeria: przewijanie poziome z przyciąganiem; kropki pokazują bieżące zdjęcie.
@@ -87,7 +89,7 @@
       {:else}
         <div class="no-photo"><Icon name="image" size={48} strokeWidth={1.2} /></div>
       {/if}
-      <a class="back" href={trailHref} aria-label={t().back}><Icon name="back" strokeWidth={2} /></a>
+      <a class="back" href={walk.active && walk.trailId === trail.id ? walkHref : trailHref} aria-label={walk.active ? t().backToWalk : t().back}><Icon name="back" strokeWidth={2} /></a>
     </div>
 
     <main class="page content">

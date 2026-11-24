@@ -39,7 +39,6 @@
     goto(`?${params}`, { replaceState: true, noScroll: true, keepFocus: true });
   }
 
-  let showSoon = $state(false);
 </script>
 
 <svelte:head><title>{tx ? `${tx.trail.name} · BdPN` : 'BdPN'}</title></svelte:head>
@@ -94,13 +93,11 @@
           {t().routeLength}: {formatDistance(route.length, i18n.lang)} · {t().walkTime(walkMinutes(route.length))}
         </p>
       {/if}
-      <button class="start" onclick={() => (showSoon = true)}>
+      <a class="start" href="{base}/sciezka/{trail.id}/spacer{routeQuery}">
         <Icon name="walk" size={22} strokeWidth={2} />
         {t().startWalk}
-      </button>
-      {#if showSoon}
-        <p class="soon" role="status">{t().startWalkSoon}</p>
-      {/if}
+      </a>
+      <a class="simulate" href="{base}/sciezka/{trail.id}/spacer{routeQuery}&zrodlo=sym">{t().simulateWalk}</a>
     </section>
 
     <section>
@@ -254,9 +251,16 @@
     font-weight: 700;
     cursor: pointer;
   }
-  .soon {
-    font-size: 14px;
-    color: var(--grey);
+  .start {
+    text-decoration: none;
+  }
+  .simulate {
+    align-self: center;
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    font-size: 15px;
+    font-weight: 700;
   }
   h2 {
     margin: 24px var(--gutter) 6px;

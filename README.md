@@ -34,6 +34,9 @@ npm test
 npm run check           # typy (TypeScript + Svelte)
 ```
 
+Spacer można przetestować bez wychodzenia z domu: na ekranie ścieżki link **Symuluj spacer**
+otwiera mapę z panelem symulatora (scenariusze, tempo ×1/×10/×30, szum GPS, własny ślad GPX).
+
 `npm run dev` buduje treści przy starcie i po każdej zapisanej zmianie w `content/`
 (GeoPackage, teksty, zdjęcia, nagrania), a potem przeładowuje stronę w przeglądarce.
 Problemy z danymi widać w terminalu.

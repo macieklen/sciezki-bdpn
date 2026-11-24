@@ -1,0 +1,33 @@
+# Ścieżka przykładowa (fikcyjna) — pokazuje strukturę danych.
+name:
+  pl: Ścieżka przykładowa
+  en: Sample trail
+subtitle:
+  pl: Ścieżka przyrodnicza
+  en: Nature trail
+description:
+  pl: |
+    Fikcyjna ścieżka do testów aplikacji: trzy wejścia, rozwidlenia,
+    ślepa odnoga do punktu widokowego i dwa bliskie przystanki przy źródliskach.
+  en: |
+    A fictional trail for testing: three entrances, junctions,
+    a dead-end spur to a viewpoint and two close stops by the springs.
+
+# Nazwy wejść; klucze = atrybut "id" w warstwie "entrances".
+entrances:
+  parking:
+    pl: Parking przy leśniczówce
+    en: Forester's lodge car park
+  przelecz:
+    pl: Przełęcz
+    en: Mountain pass
+  wies:
+    pl: Wejście od strony wsi
+    en: Village entrance
+
+# Kierunek, w którym napisano drukowany przewodnik.
+guideDirection:
+  from: parking
+  to: przelecz
+
+defaultRadius: 40

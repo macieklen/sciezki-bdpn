@@ -1,0 +1,13 @@
+{
+  "name": "@sciezki/content-build",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@sciezki/core": "*",
+    "marked": "^15.0.0",
+    "proj4": "^2.15.0",
+    "sharp": "^0.33.5",
+    "yaml": "^2.7.0",
+    "zod": "^3.24.0"
+  }
+}

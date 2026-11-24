@@ -1,0 +1,3 @@
+# Języki treści; pierwszy na liście nie musi być domyślnym.
+languages: [pl, en]
+defaultLanguage: pl

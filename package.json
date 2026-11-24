@@ -1,0 +1,24 @@
+{
+  "name": "sciezki-bdpn",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "packages/*"
+  ],
+  "engines": {
+    "node": ">=22.13"
+  },
+  "scripts": {
+    "build:content": "node --no-warnings=ExperimentalWarning --import tsx packages/content-build/src/cli.ts",
+    "sample": "node --no-warnings=ExperimentalWarning --import tsx scripts/generate-sample.ts",
+    "test": "NODE_OPTIONS=--no-warnings=ExperimentalWarning vitest run",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.5",
+    "@types/proj4": "^2.5.6",
+    "tsx": "^4.23.15",
+    "typescript": "5.7",
+    "vitest": "^3.2.7"
+  }
+}

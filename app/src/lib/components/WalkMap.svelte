@@ -11,6 +11,7 @@
     visited,
     nextStopId,
     position,
+    onTrail = true,
     rawFix,
     entranceNames,
     stopHref,
@@ -21,6 +22,8 @@
     visited: string[];
     nextStopId: string | null;
     position: [number, number] | null;
+    /** Poza ścieżką mapa nie podąża za pozycją (żeby nie uciec od ścieżki); środkuje dopiero przycisk. */
+    onTrail?: boolean;
     rawFix: [number, number] | null;
     entranceNames: Record<string, string>;
     stopHref: (id: string) => string;
@@ -151,7 +154,7 @@
     if (!map || !me) return;
     if (position) {
       me.setLngLat(position).addTo(map);
-      if (follow) map.easeTo({ center: position, duration: 400 });
+      if (follow && onTrail) map.easeTo({ center: position, duration: 400 });
     } else me.remove();
   });
 

@@ -27,6 +27,8 @@ class WalkSession {
   status = $state<'waiting' | 'on-trail' | 'off-trail'>('waiting');
   position = $state<[number, number] | null>(null);
   rawFix = $state<Fix | null>(null);
+  /** Odległość od ścieżki [m] — do komunikatu „jesteś poza ścieżką”. */
+  trailDistance = $state<number | null>(null);
   visited = $state<string[]>([]);
   outlook = $state<Outlook>({ kind: 'none' });
   arrival = $state<Arrival | null>(null);
@@ -56,6 +58,7 @@ class WalkSession {
     this.status = 'waiting';
     this.position = null;
     this.rawFix = null;
+    this.trailDistance = null;
     this.visited = [];
     this.outlook = { kind: 'none' };
     this.arrival = null;
@@ -126,6 +129,7 @@ class WalkSession {
   private sync() {
     const t = this.tracker!;
     this.status = t.status;
+    this.trailDistance = t.trailDistance;
     this.position = t.position ? [t.position.point[0], t.position.point[1]] : null;
     this.visited = [...t.visited];
     this.outlook = t.outlook();

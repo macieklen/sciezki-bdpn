@@ -131,6 +131,15 @@ describe('Tracker na ścieżce przykładowej', () => {
     expect(n6.find((x) => x.stopId === '07')!.towards.sort()).toEqual(['przelecz', 'wies']);
   });
 
+  it('daleko od ścieżki: status „poza ścieżką” z odległością od razu, bez czekania', () => {
+    const tracker = new Tracker(tg);
+    const events = tracker.update({ lon: 21.0, lat: 52.23, accuracy: 10, time: 0 }); // Warszawa
+    expect(events).toEqual([{ type: 'offTrail' }]);
+    expect(tracker.status).toBe('off-trail');
+    expect(tracker.trailDistance).toBeGreaterThan(250_000);
+    expect(tracker.position).toBeNull();
+  });
+
   it('czyta ślad GPX', () => {
     const gpx = `<gpx><trk><trkseg>
       <trkpt lat="49.07" lon="22.70"><time>2026-05-01T10:00:00Z</time><hdop>2</hdop></trkpt>

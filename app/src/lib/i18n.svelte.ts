@@ -42,6 +42,7 @@ const messages = {
     endWalk: 'Zakończ',
     waitingGps: 'Czekam na położenie…',
     offTrail: 'Jesteś poza ścieżką',
+    fromTrail: (d: string) => `${d} od niej`,
     junctionAhead: 'Zbliżasz się do rozwidlenia',
     nextStop: 'Następny przystanek',
     allVisited: 'Wszystkie przystanki odwiedzone',
@@ -116,6 +117,7 @@ const messages = {
     endWalk: 'Finish',
     waitingGps: 'Waiting for location…',
     offTrail: 'You are off the trail',
+    fromTrail: (d: string) => `${d} away`,
     junctionAhead: 'Junction ahead',
     nextStop: 'Next stop',
     allVisited: 'All stops visited',
@@ -174,6 +176,7 @@ export function formatDuration(min: number, lang: Lang): string {
 
 export function formatDistance(m: number, lang: Lang): string {
   if (m < 1000) return `${Math.round(m / 10) * 10} m`;
+  if (m >= 10000) return `${Math.round(m / 1000)} km`;
   const km = (m / 1000).toFixed(1);
   return `${lang === 'pl' ? km.replace('.', ',') : km} km`;
 }

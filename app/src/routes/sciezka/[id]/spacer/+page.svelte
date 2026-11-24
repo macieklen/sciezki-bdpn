@@ -133,7 +133,8 @@
     {trail}
     visited={walk.visited}
     {nextStopId}
-    position={walk.position}
+    position={walk.status === 'on-trail' ? walk.position : walk.rawFix ? [walk.rawFix.lon, walk.rawFix.lat] : null}
+    onTrail={walk.status === 'on-trail'}
     rawFix={simulated && walk.rawFix ? [walk.rawFix.lon, walk.rawFix.lat] : null}
     entranceNames={tx?.entrances ?? {}}
     {stopHref}
@@ -243,7 +244,9 @@
         {:else if walk.status === 'waiting'}
           <p class="note">{t().waitingGps}</p>
         {:else if walk.status === 'off-trail'}
-          <p class="note warn">{t().offTrail}</p>
+          <p class="note warn">
+            {t().offTrail}{walk.trailDistance != null ? ` · ${t().fromTrail(formatDistance(walk.trailDistance, i18n.lang))}` : ''}
+          </p>
         {/if}
         {#if walk.junction}
           <div class="junction">

@@ -84,6 +84,8 @@ export class Tracker {
   private history: { time: number; along: number }[] = [];
   /** Surowa pozycja ostatniego przyjętego odczytu. */
   lastFix: Fix | null = null;
+  /** Odległość ostatniego przyjętego odczytu od najbliższego odcinka ścieżki [m]. */
+  trailDistance: number | null = null;
   readonly visited = new Set<string>();
   ignoredFixes = 0;
 
@@ -135,8 +137,13 @@ export class Tracker {
         this.pending = null;
       }
     } else if (best.offset > o.offTrail) {
-      return []; // jeszcze nie na ścieżce
+      // Jeszcze nie na ścieżce (np. dojście z parkingu albo zupełnie inne miejsce).
+      this.trailDistance = best.offset;
+      if (this.status !== 'off-trail') events.push({ type: 'offTrail' });
+      this.status = 'off-trail';
+      return events;
     }
+    this.trailDistance = best.offset;
 
     // Poza ścieżką / powrót.
     if (chosen.offset > o.offTrail) {

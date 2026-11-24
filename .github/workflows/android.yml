@@ -1,5 +1,5 @@
 # Buduje testowe APK przy każdym wysłaniu zmian. Do pobrania:
-# - na telefonie: Releases → "Wersja testowa (najnowsza)" → sciezki-bdpn.apk,
+# - na telefonie: Releases → "Wersja testowa (najnowsza)" (main) lub "Wersja testowa: <gałąź>",
 # - albo: Actions → wybrany przebieg → Artifacts → "sciezki-bdpn-debug".
 name: Android APK
 
@@ -59,14 +59,15 @@ jobs:
           # Krótko: APK do instalacji jest w wydaniu „testowa” (nie wlicza się do limitu 500 MB na artefakty).
           retention-days: 3
 
-      # Stałe wydanie "testowa" z najnowszym APK — wygodne do pobrania na telefonie.
+      # Wydanie z najnowszym APK do pobrania na telefonie: „testowa” dla main,
+      # „testowa-<gałąź>” dla pozostałych gałęzi (np. eksperymentów) — nie nadpisują się nawzajem.
       - name: Wydanie testowe
-        if: github.event_name == 'workflow_dispatch' || github.ref_name == 'main' || startsWith(github.ref_name, 'etap-')
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+          if [ "$GITHUB_REF_NAME" = "main" ]; then TAG=testowa; TITLE="Wersja testowa (najnowsza)";
+          else TAG="testowa-$(echo "$GITHUB_REF_NAME" | tr -c 'a-zA-Z0-9-' '-' | sed 's/-*$//')"; TITLE="Wersja testowa: $GITHUB_REF_NAME"; fi
           cp app/android/app/build/outputs/apk/debug/app-debug.apk sciezki-bdpn.apk
           NOTES="Gałąź ${GITHUB_REF_NAME}, commit ${GITHUB_SHA::7}, $(date -u +'%Y-%m-%d %H:%M') UTC"
-          gh release delete testowa --yes --cleanup-tag || true
-          gh release create testowa sciezki-bdpn.apk --prerelease --target "$GITHUB_SHA" \
-            --title "Wersja testowa (najnowsza)" --notes "$NOTES"
+          gh release delete "$TAG" --yes --cleanup-tag || true
+          gh release create "$TAG" sciezki-bdpn.apk --prerelease --target "$GITHUB_SHA" --title "$TITLE" --notes "$NOTES"

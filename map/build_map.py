@@ -7,7 +7,8 @@ Buduje podkład mapy (PMTiles) dla obszaru parku z danych OpenStreetMap.
 Kroki:
  1. granica parku (Shapefile, EPSG:2180) + bufor → wielokąt przycięcia (.poly) i zasięg,
  2. pobranie wycinka OSM (Geofabrik, województwo podkarpackie) i Planetilera — raz, do map/.cache,
- 3. Planetiler z własnym schematem (map/schema.yml) → map/out/bdpn.pmtiles.
+ 3. Planetiler z własnym schematem (map/schema.yml) → content/maps/bdpn.pmtiles
+    (stamtąd build treści dołącza mapę do aplikacji).
 
 Wymaga: Python 3.10+ (pyshp, pyproj, shapely), Java 21+.
 """
@@ -28,7 +29,6 @@ from shapely.ops import transform, unary_union
 
 HERE = Path(__file__).resolve().parent
 CACHE = HERE / ".cache"
-OUT = HERE / "out"
 
 # Lustro OSM France (Geofabrik: https://download.geofabrik.de/europe/poland/podkarpackie-latest.osm.pbf)
 OSM_URL = "https://download.openstreetmap.fr/extracts/europe/poland/podkarpackie-latest.osm.pbf"
@@ -76,7 +76,7 @@ def main() -> int:
     ap.add_argument("--boundary", type=Path, default=HERE / "data" / "granica_bdpn_uproszczona.shp")
     ap.add_argument("--buffer", type=float, default=2000, help="bufor wokół granicy parku [m]")
     ap.add_argument("--maxzoom", type=int, default=15)
-    ap.add_argument("--out", type=Path, default=OUT / "bdpn.pmtiles")
+    ap.add_argument("--out", type=Path, default=HERE.parent / "content" / "maps" / "bdpn.pmtiles")
     args = ap.parse_args()
     args.out = args.out.resolve()
     args.boundary = args.boundary.resolve()

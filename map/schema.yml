@@ -27,7 +27,7 @@ layers:
       - source: osm
         geometry: polygon
         min_zoom: 8
-        min_size: 2
+        min_size: 4
         include_when:
           natural: [wood, grassland, heath, scrub, bare_rock, scree, wetland]
           landuse: [forest, meadow, grass, farmland, orchard, residential, farmyard]
@@ -54,7 +54,17 @@ layers:
         geometry: line
         min_zoom: 10
         include_when:
-          waterway: [river, stream, canal]
+          waterway: [river, canal]
+        attributes:
+          - key: class
+            tag_value: waterway
+          - key: name
+            min_zoom: 12
+      - source: osm
+        geometry: line
+        min_zoom: 12
+        include_when:
+          waterway: stream
         attributes:
           - key: class
             tag_value: waterway

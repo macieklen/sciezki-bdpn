@@ -62,7 +62,11 @@ programistyczne i GIS (QGIS, Python). Komunikacja po polsku, zwracamy się „Pa
    (`simulateWalk`, GPX); ekran `/sciezka/<id>/spacer` z mapą MapLibre (na razie bez
    podkładu), panelem następnego przystanku, listą „Jestem przy przystanku”;
    `?zrodlo=sym` włącza panel symulatora.
-   ⏭ Do omówienia z właścicielem: pipeline kafelków mapy (Python/GDAL, Planetiler, NMT).
+   ✅ Podkład mapy: `map/build_map.py` (granica parku z `map/data` + bufor 2 km, wycinek OSM
+   z lustra download.openstreetmap.fr, Planetiler, `map/schema.yml`) → `content/maps/bdpn.pmtiles`
+   (12,7 MB, w repozytorium); build treści dołącza mapy do manifestu (`maps`); aplikacja
+   wczytuje plik w całości do pamięci (`lib/basemap.ts`) i rysuje stylem `lib/map-style.ts`;
+   czcionki Lato jako glify w `app/static/glyphs/`. NMT na razie pominięte (decyzja właściciela).
 5. 🔧 Capacitor (przesunięty przed offline, żeby testować GPS w terenie): projekt `app/android`,
    `NativeLocation` (@capacitor-community/background-geolocation, `useLegacyBridge`),
    powiadomienia lokalne o przystankach (`lib/notify.ts`), ikona z logo, skrypty

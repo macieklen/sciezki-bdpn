@@ -179,6 +179,20 @@ export const manifestSchema = z.object({
   generatedAt: z.string(),
   languages: z.array(langCode),
   defaultLanguage: langCode,
+  /** Podkłady map (PMTiles), wspólne dla wszystkich ścieżek w regionie. */
+  maps: z
+    .array(
+      z.object({
+        id: slug,
+        path: z.string(),
+        size: z.number().int(),
+        sha256: z.string(),
+        bounds: z.tuple([z.number(), z.number(), z.number(), z.number()]),
+        minZoom: z.number().int(),
+        maxZoom: z.number().int(),
+      }),
+    )
+    .default([]),
   trails: z.array(
     z.object({
       id: slug,

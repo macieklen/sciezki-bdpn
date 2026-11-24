@@ -1,6 +1,8 @@
 <script lang="ts">
   import 'maplibre-gl/dist/maplibre-gl.css';
-  import maplibregl, { type StyleSpecification } from 'maplibre-gl';
+  import maplibregl from 'maplibre-gl';
+  import { basemapUrl } from '$lib/basemap';
+  import { basemapStyle } from '$lib/map-style';
   import { onDestroy, onMount } from 'svelte';
   import type { TrailBundle } from '@sciezki/core';
 
@@ -31,20 +33,12 @@
   } = $props();
 
   let container: HTMLDivElement;
-  let map: maplibregl.Map | undefined;
+  // $state.raw: efekty poniżej uruchamiają się ponownie, gdy mapa powstanie (asynchronicznie).
+  let map = $state.raw<maplibregl.Map | undefined>();
   const stopMarkers = new Map<string, HTMLAnchorElement>();
   const entranceLabels = new Map<string, HTMLElement>();
   let me: maplibregl.Marker | undefined;
   let raw: maplibregl.Marker | undefined;
-
-  // Podkład: na razie jednolite tło; własne kafelki z terenem dojdą wraz z pipeline'em mapy.
-  // Do testów można podać zewnętrzny styl: VITE_BASEMAP_STYLE=https://…/style.json
-  const basemap = import.meta.env.VITE_BASEMAP_STYLE as string | undefined;
-  const plainStyle: StyleSpecification = {
-    version: 8,
-    sources: {},
-    layers: [{ id: 'tlo', type: 'background', paint: { 'background-color': '#e9eddf' } }],
-  };
 
   function segmentsGeoJSON(): GeoJSON.FeatureCollection {
     const onRoute = new Set(route?.segments.map((s) => s.id) ?? []);
@@ -65,14 +59,19 @@
     return e;
   }
 
-  onMount(() => {
+  let destroyed = false;
+  onMount(async () => {
+    const bm = await basemapUrl().catch(() => null);
+    if (destroyed) return;
     const [w, s, e, n] = trail.bbox;
     map = new maplibregl.Map({
       container,
-      style: basemap ?? plainStyle,
+      style: basemapStyle(bm?.url ?? null, '© OpenStreetMap contributors'),
       bounds: [w, s, e, n],
       fitBoundsOptions: { padding: { top: 120, bottom: 220, left: 40, right: 40 } },
-      attributionControl: basemap ? undefined : false,
+      minZoom: 9,
+      maxZoom: 18,
+      attributionControl: bm ? { compact: true } : false,
       dragRotate: false,
       pitchWithRotate: false,
     });
@@ -128,16 +127,21 @@
     me = new maplibregl.Marker({ element: el('div', 'me') });
   });
 
-  onDestroy(() => map?.remove());
+  onDestroy(() => {
+    destroyed = true;
+    map?.remove();
+  });
 
   // Nazwy wejść i opisy przystanków docierają po wczytaniu tekstów (i zmieniają się z językiem).
   $effect(() => {
+    if (!map) return;
     for (const [id, label] of entranceLabels) label.textContent = entranceNames[id] ?? id;
     for (const stop of trail.stops) stopMarkers.get(stop.id)?.setAttribute('aria-label', `${stop.number}. ${stopTitle(stop.id)}`);
   });
 
   // Stan przystanków: odwiedzone / następny / pozostałe.
   $effect(() => {
+    if (!map) return;
     const done = new Set(visited);
     for (const [id, a] of stopMarkers) {
       a.classList.toggle('visited', done.has(id));

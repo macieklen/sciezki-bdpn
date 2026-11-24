@@ -23,6 +23,7 @@ import {
   type TrailTexts,
 } from '@sciezki/core';
 import { processGeometry } from './geometry.ts';
+import { buildMaps } from './maps.ts';
 import { AUDIO_EXTENSIONS, IMAGE_EXTENSIONS, checkFfmpeg, fileHash, processAudio, processImage } from './media.ts';
 import { Reporter, type Message } from './report.ts';
 
@@ -80,6 +81,7 @@ export async function buildContent({ contentDir, outDir }: BuildOptions): Promis
     generatedAt: new Date().toISOString(),
     languages: config.languages,
     defaultLanguage: config.defaultLanguage,
+    maps: await buildMaps(contentDir, outDir, root),
     trails: [],
   };
   // Brak ffmpeg zgłaszamy raz, a nie przy każdym nagraniu.

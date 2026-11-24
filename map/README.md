@@ -1,6 +1,6 @@
 # Podkład mapy (kafelki wektorowe)
 
-Buduje plik `map/out/bdpn.pmtiles` z danych OpenStreetMap dla obszaru parku
+Buduje plik `content/maps/bdpn.pmtiles` z danych OpenStreetMap dla obszaru parku
 (granica z `data/granica_bdpn_uproszczona.*` + bufor). Uruchamiany rzadko — gdy chcemy
 odświeżyć dane OSM albo zmienić zawartość mapy.
 
@@ -19,10 +19,14 @@ Zawartość mapy opisuje `schema.yml` (warstwy: `landcover`, `water`, `waterway`
 `transportation`, `building`, `place`, `poi`, `park`). Wycinek kończy się na granicy
 państwa, więc po stronie Ukrainy i Słowacji mapa jest pusta.
 
+Plik trafia do repozytorium (`content/maps/`), a build treści dołącza go do aplikacji
+i manifestu — mapa działa offline. Styl mapy jest w `app/src/lib/map-style.ts`,
+czcionki do napisów (Lato, z polskimi znakami) w `app/static/glyphs/`.
+
 | Wariant | Rozmiar |
 |---|---|
-| bufor 2 km, zoom ≤ 15 (domyślny) | 14,7 MB |
-| bufor 2 km, zoom ≤ 14 | 10,0 MB |
-| bufor 5 km, zoom ≤ 15 | 18,8 MB |
+| bufor 2 km, zoom ≤ 15 (domyślny; potoki od zoomu 12) | 12,7 MB |
+| bufor 2 km, zoom ≤ 14 | ok. 10 MB |
+| bufor 5 km, zoom ≤ 15 | ok. 18 MB |
 
 Dane: © OpenStreetMap contributors (ODbL) — atrybucja musi być widoczna na mapie.

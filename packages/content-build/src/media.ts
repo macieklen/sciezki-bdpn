@@ -12,6 +12,25 @@ import sharp from 'sharp';
 
 const run = promisify(execFile);
 
+/** Ścieżki do programów; można je wskazać zmiennymi środowiskowymi, jeśli nie ma ich w PATH. */
+export const FFMPEG = process.env.FFMPEG_PATH || 'ffmpeg';
+export const FFPROBE = process.env.FFPROBE_PATH || 'ffprobe';
+
+/** Sprawdza, czy ffmpeg i ffprobe są dostępne. Zwraca opis problemu albo null. */
+export async function checkFfmpeg(): Promise<string | null> {
+  for (const [name, bin, env] of [['ffmpeg', FFMPEG, 'FFMPEG_PATH'], ['ffprobe', FFPROBE, 'FFPROBE_PATH']] as const) {
+    try {
+      await run(bin, ['-version']);
+    } catch {
+      return (
+        `Nie znaleziono programu ${name} (szukano: "${bin}"), więc nagrania pominięto (aplikacja pokaże przystanki bez nich). ` +
+        `Zainstaluj ffmpeg (instrukcja w README) albo wskaż plik zmienną środowiskową ${env}.`
+      );
+    }
+  }
+  return null;
+}
+
 export const IMAGE_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.webp', '.tif', '.tiff'];
 export const AUDIO_EXTENSIONS = ['.m4a', '.mp3', '.wav', '.aac', '.ogg', '.flac'];
 export const IMAGE_WIDTHS = [800, 1600];
@@ -71,8 +90,8 @@ export async function processAudio(src: string, outDir: string, relDir: string):
   const name = `${stem(src)}-${hash}.m4a`;
   const target = join(outDir, name);
   await produce(target, async (tmp) => {
-    await run('ffmpeg', ['-v', 'error', '-y', '-i', src, '-vn', '-ac', '1', '-ar', '44100', '-c:a', 'aac', '-b:a', '64k', '-movflags', '+faststart', '-f', 'mp4', tmp]);
+    await run(FFMPEG, ['-v', 'error', '-y', '-i', src, '-vn', '-ac', '1', '-ar', '44100', '-c:a', 'aac', '-b:a', '64k', '-movflags', '+faststart', '-f', 'mp4', tmp]);
   });
-  const { stdout } = await run('ffprobe', ['-v', 'error', '-show_entries', 'format=duration', '-of', 'csv=p=0', target]);
+  const { stdout } = await run(FFPROBE, ['-v', 'error', '-show_entries', 'format=duration', '-of', 'csv=p=0', target]);
   return { file: `${relDir}/${name}`, duration: Math.round(Number(stdout.trim()) * 10) / 10 };
 }

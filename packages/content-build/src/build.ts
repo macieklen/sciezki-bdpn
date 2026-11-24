@@ -23,7 +23,7 @@ import {
   type TrailTexts,
 } from '@sciezki/core';
 import { processGeometry } from './geometry.ts';
-import { AUDIO_EXTENSIONS, IMAGE_EXTENSIONS, fileHash, processAudio, processImage } from './media.ts';
+import { AUDIO_EXTENSIONS, IMAGE_EXTENSIONS, checkFfmpeg, fileHash, processAudio, processImage } from './media.ts';
 import { Reporter, type Message } from './report.ts';
 
 export interface BuildOptions {
@@ -82,10 +82,13 @@ export async function buildContent({ contentDir, outDir }: BuildOptions): Promis
     defaultLanguage: config.defaultLanguage,
     trails: [],
   };
+  // Brak ffmpeg zgłaszamy raz, a nie przy każdym nagraniu.
+  const ffmpegProblem = await checkFfmpeg();
+  if (ffmpegProblem) root.warning(ffmpegProblem);
   let ok = true;
   for (const id of trailIds) {
     const r = root.child(id);
-    const entry = await buildTrail(id, join(trailsDir, id), join(outDir, 'trails', id), outDir, config, r);
+    const entry = await buildTrail(id, join(trailsDir, id), join(outDir, 'trails', id), outDir, config, r, !ffmpegProblem);
     if (entry) manifest.trails.push(entry);
     else ok = false;
   }
@@ -110,6 +113,7 @@ async function buildTrail(
   outRoot: string,
   config: ContentConfig,
   r: Reporter,
+  audioEnabled = true,
 ): Promise<Manifest['trails'][number] | null> {
   if (!/^[a-z0-9][a-z0-9_-]*$/.test(id)) {
     r.error('Nazwa katalogu ścieżki może zawierać tylko małe litery, cyfry, "-" i "_".');
@@ -189,7 +193,7 @@ async function buildTrail(
       const mdPath = join(stopsDir, `${stop.id}.${lang}.md`);
       const audioFile = files.find((f) => f.startsWith(`${stop.id}.${lang}.`) && AUDIO_EXTENSIONS.includes(extname(f).toLowerCase()));
       let audio;
-      if (audioFile) {
+      if (audioFile && audioEnabled) {
         try {
           audio = await processAudio(join(stopsDir, audioFile), join(out, 'media', 'audio', lang), `media/audio/${lang}`);
         } catch (e) {

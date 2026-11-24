@@ -16,7 +16,14 @@ app/                     aplikacja (SvelteKit, Svelte 5, tryb SPA pod Capacitor)
 scripts/                 narzędzia pomocnicze (np. generator ścieżki przykładowej)
 ```
 
-Wymagania: Node.js ≥ 22.13, `ffmpeg` i `ffprobe` w PATH.
+Wymagania: Node.js ≥ 22.13 oraz `ffmpeg` z `ffprobe` (do nagrań):
+
+- Windows: `winget install Gyan.FFmpeg`, potem nowe okno terminala;
+- macOS: `brew install ffmpeg`;
+- Linux: `sudo apt install ffmpeg`.
+
+Jeśli programów nie ma w PATH, można wskazać je zmiennymi `FFMPEG_PATH` i `FFPROBE_PATH`.
+Bez ffmpeg build działa, ale pomija nagrania (z ostrzeżeniem).
 
 ```bash
 npm install

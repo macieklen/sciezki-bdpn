@@ -1,0 +1,1 @@
+# sciezki-bdpn

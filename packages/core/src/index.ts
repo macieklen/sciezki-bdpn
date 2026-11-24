@@ -4,3 +4,4 @@ export * from './schema.ts';
 export * from './trail-graph.ts';
 export * from './tracker.ts';
 export * from './simulate.ts';
+export * from './explore.ts';

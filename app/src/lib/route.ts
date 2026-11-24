@@ -1,50 +1,27 @@
-/** Wybór trasy między wejściami i pomocnicze obliczenia dla widoków. */
-import type { TrailBundle } from '@sciezki/core';
+/** Pomocnicze obliczenia dla widoków (bez narzucania trasy). */
+import type { BranchOption, TrailBundle } from '@sciezki/core';
 
-export type Route = TrailBundle['routes'][number];
-
-/** Średnie tempo marszu po szlaku leśnym [km/h]. */
-const WALK_SPEED_KMH = 3.5;
-export const walkMinutes = (meters: number) => (meters / 1000 / WALK_SPEED_KMH) * 60;
-
-export function defaultStart(trail: TrailBundle): string | undefined {
-  return trail.guideDirection?.from ?? trail.entrances[0]?.id;
-}
-
-/** Domyślny koniec: koniec trasy przewodnika albo najdłuższa trasa z danego wejścia. */
-export function defaultEnd(trail: TrailBundle, from: string): string | undefined {
-  const g = trail.guideDirection;
-  if (g) {
-    if (g.from === from) return g.to;
-    if (g.to === from) return g.from;
-  }
-  const routes = trail.routes.filter((r) => r.from === from).sort((a, b) => b.length - a.length);
-  return routes[0]?.to;
-}
-
-export function findRoute(trail: TrailBundle, from?: string | null, to?: string | null): Route | undefined {
-  return trail.routes.find((r) => r.from === from && r.to === to);
-}
-
-/** Przystanki leżące poza trasą (na odnogach), w kolejności numerów. */
-export function spurStops(trail: TrailBundle, route: Route | undefined) {
-  const onRoute = new Set(route?.stops ?? []);
-  return trail.stops
-    .filter((s) => !onRoute.has(s.id))
-    .sort((a, b) => a.number.localeCompare(b.number, 'pl', { numeric: true }));
+/** Przystanki w kolejności numeracji przewodnika. */
+export function stopsByNumber(trail: TrailBundle) {
+  return trail.stops.toSorted((a, b) => a.number.localeCompare(b.number, 'pl', { numeric: true }));
 }
 
 /**
- * Czy na tym przystanku idziemy w przeciwną stronę niż przewodnik?
- * Porównujemy kierunek przejścia odcinka z przystankiem na naszej trasie i na trasie przewodnika.
+ * Czy idąc w kierunku `direction` (wzdłuż odcinka przystanku) idziemy pod prąd przewodnika?
+ * Porównujemy z kierunkiem, w którym trasa przewodnika przechodzi ten odcinek.
  */
-export function isOppositeToGuide(trail: TrailBundle, route: Route | undefined, stopId: string): boolean {
+export function isOppositeToGuide(trail: TrailBundle, stopId: string, direction: 1 | -1 | 0 | undefined): boolean {
   const g = trail.guideDirection;
-  if (!g || !route) return false;
-  const guide = findRoute(trail, g.from, g.to);
+  if (!g || !direction) return false;
+  const guide = trail.routes.find((r) => r.from === g.from && r.to === g.to);
   const stop = trail.stops.find((s) => s.id === stopId);
-  if (!guide || !stop) return false;
-  const mine = route.segments.find((s) => s.id === stop.segmentId);
-  const theirs = guide.segments.find((s) => s.id === stop.segmentId);
-  return !!mine && !!theirs && mine.reversed !== theirs.reversed;
+  const seg = guide?.segments.find((s) => s.id === stop?.segmentId);
+  if (!seg) return false;
+  const guideDir = seg.reversed ? -1 : 1;
+  return direction !== guideDir;
+}
+
+/** Etykieta gałęzi z nazw końców (mianownik, bez odmiany): „Przełęcz · Wieś”. */
+export function branchLabel(option: BranchOption, names: Record<string, string>): string {
+  return option.endpoints.map((e) => names[e.id] ?? e.id).join(' · ');
 }

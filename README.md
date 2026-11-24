@@ -89,13 +89,16 @@ Trzy warstwy, w układzie **EPSG:2180** lub **EPSG:4326**:
 | Warstwa | Typ | Atrybuty |
 |---|---|---|
 | `segments` | linia | `id` (tekst, opcjonalny) |
-| `entrances` | punkt | `id` (tekst, wymagany; klucz do nazw w `trail.yaml`) |
+| `entrances` | punkt | `id` (tekst, wymagany; klucz do nazw w `trail.yaml`), `type`: `wejscie` (domyślnie) albo `koniec` — nazwany ślepy koniec, np. punkt widokowy, jaskinia |
 | `stops` | punkt | `id` (wymagany; nazwa plików w `stops/`), `number` (numer z przewodnika), `radius` (promień powiadomienia [m], opcjonalny), `group` (opcjonalny) |
 
 - Odcinki rysujemy **od węzła do węzła** (rozwidlenie, wejście, ślepy koniec) z włączonym
   przyciąganiem do wierzchołków. Końce bliższe niż 2 m są sklejane automatycznie.
 - Sieć odcinków musi być **drzewem**: spójna i bez pętli.
 - Wejście musi leżeć na końcu odcinka lub na rozwidleniu (do 10 m).
+- Każdy ślepy koniec, który nie jest wejściem, dostaje punkt w `entrances` z `type = koniec`
+  i nazwą w `trail.yaml` — aplikacja opisuje gałęzie przy rozwidleniach nazwami końców,
+  do których prowadzą (np. „Przełęcz · Wieś”, „Punkt widokowy · ślepa odnoga”).
 - Przystanek nie dalej niż 25 m od ścieżki; build sam wylicza jego pozycję na odcinku.
 - Przystanki bardzo blisko siebie (np. dwie tablice przy jednym źródle) dostają wspólną
   wartość `group` — wtedy aplikacja wyśle jedno powiadomienie.

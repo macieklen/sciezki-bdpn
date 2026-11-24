@@ -1,10 +1,10 @@
 <script lang="ts">
   import { base } from '$app/paths';
   import { page } from '$app/state';
-  import type { TrailTexts } from '@sciezki/core';
+  import { stopNeighbours, trailGraph, type Neighbour, type TrailTexts } from '@sciezki/core';
   import { loadTexts, trailFileUrl } from '$lib/content';
-  import { i18n, t } from '$lib/i18n.svelte';
-  import { defaultEnd, defaultStart, findRoute, isOppositeToGuide } from '$lib/route';
+  import { formatDistance, i18n, t } from '$lib/i18n.svelte';
+  import { isOppositeToGuide } from '$lib/route';
   import { walk } from '$lib/walk.svelte';
   import AudioPlayer from '$lib/components/AudioPlayer.svelte';
   import Icon from '$lib/components/Icon.svelte';
@@ -20,15 +20,21 @@
     });
   });
 
-  const from = $derived(page.url.searchParams.get('od') ?? defaultStart(trail) ?? '');
-  const to = $derived(page.url.searchParams.get('do') ?? defaultEnd(trail, from) ?? '');
-  const route = $derived(findRoute(trail, from, to));
-  const index = $derived(route?.stops.indexOf(stop.id) ?? -1);
-  const prevId = $derived(index > 0 ? route!.stops[index - 1] : undefined);
-  const nextId = $derived(index >= 0 ? route!.stops[index + 1] : undefined);
-  const opposite = $derived(isOppositeToGuide(trail, route, stop.id));
+  // Sąsiedzi po ścieżce w obu kierunkach (przez rozwidlenie — po jednym na gałąź).
+  const tg = $derived(trailGraph(trail));
+  const neighbours = $derived(stopNeighbours(tg, stop.id));
+  // Notka „pod prąd przewodnika” według faktycznego kierunku marszu przy dotarciu do przystanku.
+  const opposite = $derived(walk.isFor(trail.id) && isOppositeToGuide(trail, stop.id, walk.arrivalDirection[stop.id]));
+  const neighbourMeta = (n: Neighbour, texts: TrailTexts) => {
+    const title = texts.stops[n.stopId]?.title;
+    // Pomijamy kierunek, który powtarza tytuł przystanku (np. przystanek „Punkt widokowy” na końcu odnogi).
+    const towards = n.towards.map((id) => texts.entrances[id] ?? id).filter((name) => name !== title);
+    return [formatDistance(n.distance, i18n.lang), towards.length ? `${t().towards}: ${towards.join(' · ')}` : null]
+      .filter(Boolean)
+      .join(' · ');
+  };
   const query = $derived(page.url.search);
-  const trailHref = $derived(`${base}/sciezka/${trail.id}${query}`);
+  const trailHref = $derived(`${base}/sciezka/${trail.id}`);
   const walkHref = $derived(`${base}/sciezka/${trail.id}/spacer${query}`);
   const stopHref = (id: string) => `${base}/sciezka/${trail.id}/${id}${query}`;
 
@@ -95,7 +101,7 @@
     <main class="page content">
       <div class="kicker">
         <span class="badge big">{stop.number}</span>
-        <span>{index >= 0 ? t().stopOf(index + 1, route!.stops.length) : t().stopOnSpur}</span>
+        <span>{t().stopNo(stop.number)}</span>
       </div>
       <h1>{text?.title ?? stop.id}</h1>
 
@@ -108,20 +114,26 @@
 
       <div class="prose">{@html text?.html ?? ''}</div>
 
-      <nav class="pager" aria-label="{t().previous} / {t().next}">
-        {#if prevId}
-          <a href={stopHref(prevId)} class="prev">
-            <Icon name="back" size={20} strokeWidth={2} />
-            <span><small>{t().previous}</small>{tx.stops[prevId]?.title}</span>
-          </a>
-        {:else}<span></span>{/if}
-        {#if nextId}
-          <a href={stopHref(nextId)} class="next">
-            <span><small>{t().next}</small>{tx.stops[nextId]?.title}</span>
-            <Icon name="chevron" size={20} strokeWidth={2} />
-          </a>
-        {/if}
-      </nav>
+      {#if neighbours.length}
+        <nav class="neighbours" aria-label={t().neighbours}>
+          <h2>{t().neighbours}</h2>
+          <ul>
+            {#each neighbours as n (n.stopId)}
+              {@const ns = trail.stops.find((x) => x.id === n.stopId)!}
+              <li>
+                <a href={stopHref(n.stopId)}>
+                  <span class="badge">{ns.number}</span>
+                  <span class="n-text">
+                    <span class="n-title">{tx.stops[n.stopId]?.title ?? n.stopId}</span>
+                    <small>{neighbourMeta(n, tx)}</small>
+                  </span>
+                  <Icon name="chevron" size={20} strokeWidth={2} />
+                </a>
+              </li>
+            {/each}
+          </ul>
+        </nav>
+      {/if}
     </main>
 
     {#if text?.audio}
@@ -281,32 +293,46 @@
   .prose {
     margin-top: 16px;
   }
-  .pager {
+  .neighbours {
     margin-top: 32px;
-    display: flex;
-    justify-content: space-between;
-    gap: 12px;
   }
-  .pager a {
-    min-height: var(--tap);
-    max-width: 48%;
+  .neighbours h2 {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--grey);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+  .neighbours ul {
+    list-style: none;
+    margin: 6px 0 0;
+    padding: 0;
+  }
+  .neighbours a {
+    min-height: 60px;
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 12px;
+    border-bottom: 1px solid var(--line);
     text-decoration: none;
-    color: var(--green-text);
+    color: var(--ink);
+  }
+  .n-text {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+  }
+  .n-title {
+    font-size: 16px;
     font-weight: 700;
-    font-size: 15px;
   }
-  .pager .next {
-    margin-left: auto;
-    text-align: right;
-  }
-  .pager small {
-    display: block;
-    font-weight: 400;
+  .neighbours small {
     font-size: 13px;
     color: var(--grey);
+  }
+  .neighbours :global(svg) {
+    color: var(--taupe);
   }
   .dock {
     position: sticky;

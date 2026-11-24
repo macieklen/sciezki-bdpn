@@ -1,11 +1,9 @@
 <script lang="ts">
   import { base } from '$app/paths';
-  import { goto } from '$app/navigation';
-  import { page } from '$app/state';
   import type { TrailTexts } from '@sciezki/core';
   import { loadTexts } from '$lib/content';
   import { formatDistance, i18n, t } from '$lib/i18n.svelte';
-  import { defaultEnd, defaultStart, findRoute, spurStops, walkMinutes } from '$lib/route';
+  import { stopsByNumber } from '$lib/route';
   import Icon from '$lib/components/Icon.svelte';
 
   let { data } = $props();
@@ -18,27 +16,7 @@
     });
   });
 
-  // Wybór trasy trzymamy w adresie (?od=…&do=…), żeby przetrwał powrót z przystanku.
-  const from = $derived(page.url.searchParams.get('od') ?? defaultStart(trail) ?? '');
-  const to = $derived.by(() => {
-    const q = page.url.searchParams.get('do');
-    return q && q !== from ? q : (defaultEnd(trail, from) ?? '');
-  });
-  const route = $derived(findRoute(trail, from, to));
-  const spurs = $derived(spurStops(trail, route));
-  const stopsById = $derived(new Map(trail.stops.map((s) => [s.id, s])));
-  const routeQuery = $derived(`?od=${from}&do=${to}`);
-
-  function choose(key: 'od' | 'do', value: string) {
-    const params = new URLSearchParams(page.url.searchParams);
-    params.set(key, value);
-    if (key === 'od') {
-      params.set('od', value);
-      if (params.get('do') === value) params.delete('do');
-    }
-    goto(`?${params}`, { replaceState: true, noScroll: true, keepFocus: true });
-  }
-
+  const stops = $derived(stopsByNumber(trail));
 </script>
 
 <svelte:head><title>{tx ? `${tx.trail.name} · BdPN` : 'BdPN'}</title></svelte:head>
@@ -62,54 +40,22 @@
     {/if}
 
     <section class="planner" aria-label={t().startWalk}>
-      <div class="field">
-        <label for="od">{t().startFrom}</label>
-        <div class="select">
-          <select id="od" value={from} onchange={(e) => choose('od', e.currentTarget.value)}>
-            {#each trail.entrances as e (e.id)}
-              <option value={e.id}>{tx.entrances[e.id] ?? e.id}</option>
-            {/each}
-          </select>
-          <Icon name="down" size={20} strokeWidth={2} />
-        </div>
-      </div>
-      {#if trail.entrances.length > 2}
-        <div class="field">
-          <label for="do">{t().endAt}</label>
-          <div class="select">
-            <select id="do" value={to} onchange={(e) => choose('do', e.currentTarget.value)}>
-              {#each trail.entrances.filter((e) => e.id !== from) as e (e.id)}
-                <option value={e.id}>{tx.entrances[e.id] ?? e.id}</option>
-              {/each}
-            </select>
-            <Icon name="down" size={20} strokeWidth={2} />
-          </div>
-        </div>
-      {:else if trail.entrances.length === 2}
-        <p class="route-end">{t().endAt}: <strong>{tx.entrances[to] ?? to}</strong></p>
-      {/if}
-      {#if route}
-        <p class="route-facts">
-          {t().routeLength}: {formatDistance(route.length, i18n.lang)} · {t().walkTime(walkMinutes(route.length))}
-        </p>
-      {/if}
-      <a class="start" href="{base}/sciezka/{trail.id}/spacer{routeQuery}">
+      <a class="start" href="{base}/sciezka/{trail.id}/spacer">
         <Icon name="walk" size={22} strokeWidth={2} />
         {t().startWalk}
       </a>
-      <a class="simulate" href="{base}/sciezka/{trail.id}/spacer{routeQuery}&zrodlo=sym">{t().simulateWalk}</a>
+      <a class="simulate" href="{base}/sciezka/{trail.id}/spacer?zrodlo=sym">{t().simulateWalk}</a>
     </section>
 
     <section>
       <h2>{t().stopsHeading}</h2>
       <ol class="stops">
-        {#each route?.stops ?? [] as id (id)}
-          {@const s = stopsById.get(id)!}
+        {#each stops as s (s.id)}
           <li>
-            <a href="{base}/sciezka/{trail.id}/{id}{routeQuery}">
+            <a href="{base}/sciezka/{trail.id}/{s.id}">
               <span class="badge">{s.number}</span>
-              <span class="name">{tx.stops[id]?.title ?? id}</span>
-              {#if tx.stops[id]?.audio}
+              <span class="name">{tx.stops[s.id]?.title ?? s.id}</span>
+              {#if tx.stops[s.id]?.audio}
                 <span class="audio" title={t().narration}><Icon name="headphones" size={20} /><span class="visually-hidden">{t().narration}</span></span>
               {/if}
             </a>
@@ -117,24 +63,6 @@
         {/each}
       </ol>
     </section>
-
-    {#if spurs.length}
-      <section>
-        <h2>{t().onSpurs}</h2>
-        <p class="hint">{t().onSpursHint}</p>
-        <ul class="stops">
-          {#each spurs as s (s.id)}
-            <li>
-              <a href="{base}/sciezka/{trail.id}/{s.id}{routeQuery}">
-                <span class="badge">{s.number}</span>
-                <span class="name">{tx.stops[s.id]?.title ?? s.id}</span>
-                <span class="audio"><Icon name="branch" size={20} /></span>
-              </a>
-            </li>
-          {/each}
-        </ul>
-      </section>
-    {/if}
   </main>
 {/if}
 
@@ -195,48 +123,6 @@
     flex-direction: column;
     gap: 12px;
   }
-  .field {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-  }
-  label {
-    font-size: 14px;
-    font-weight: 700;
-    color: var(--grey);
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-  }
-  .select {
-    position: relative;
-    color: var(--brown);
-  }
-  .select :global(svg) {
-    position: absolute;
-    right: 14px;
-    top: 16px;
-    pointer-events: none;
-  }
-  select {
-    width: 100%;
-    height: 52px;
-    padding: 0 44px 0 14px;
-    border: 1px solid #c9c6c0;
-    border-radius: 10px;
-    background: var(--surface);
-    font: inherit;
-    font-size: 17px;
-    color: var(--ink);
-    appearance: none;
-  }
-  .route-end,
-  .route-facts {
-    font-size: 15px;
-    color: var(--grey);
-  }
-  .route-end strong {
-    color: var(--ink);
-  }
   .start {
     height: 56px;
     border: none;
@@ -267,11 +153,6 @@
     font-size: 20px;
     font-weight: 700;
     color: var(--brown);
-  }
-  .hint {
-    margin: 0 var(--gutter) 4px;
-    font-size: 14px;
-    color: var(--grey);
   }
   .stops {
     list-style: none;

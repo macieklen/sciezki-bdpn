@@ -1,11 +1,20 @@
 /**
  * Sesja spaceru: jedna na aplikację, przetrwa przejście do ekranu przystanku i z powrotem.
- * Łączy źródło położenia z logiką śledzenia z packages/core.
+ * Łączy źródło położenia z logiką śledzenia z packages/core. Bez narzuconej trasy:
+ * aplikacja reaguje na ruch (przystanki przed nami, opcje przy rozwidleniu).
  */
-import { Tracker, trailGraph, type Fix, type TrackerEvent, type TrailBundle, type TrailGraph } from '@sciezki/core';
+import {
+  Tracker,
+  dist,
+  trailGraph,
+  type BranchOption,
+  type Fix,
+  type Outlook,
+  type TrackerEvent,
+  type TrailBundle,
+  type TrailGraph,
+} from '@sciezki/core';
 import type { LocationSource } from './location.svelte';
-
-type Route = TrailBundle['routes'][number];
 
 export interface Arrival {
   stopIds: string[];
@@ -14,15 +23,17 @@ export interface Arrival {
 
 class WalkSession {
   trailId = $state<string | null>(null);
-  routeKey = $state<string | null>(null);
   source = $state<LocationSource | null>(null);
   status = $state<'waiting' | 'on-trail' | 'off-trail'>('waiting');
   position = $state<[number, number] | null>(null);
   rawFix = $state<Fix | null>(null);
   visited = $state<string[]>([]);
-  next = $state<{ stopId: string; distance: number | null } | null>(null);
+  outlook = $state<Outlook>({ kind: 'none' });
   arrival = $state<Arrival | null>(null);
-  junctionAhead = $state<string | null>(null);
+  /** Rozwidlenie przed nami z opcjami; widoczne do potwierdzenia gałęzi (nie miga). */
+  junction = $state<{ nodeId: string; options: BranchOption[] } | null>(null);
+  /** Kierunek marszu przy dotarciu do przystanku (do notek „pod prąd przewodnika”). */
+  arrivalDirection = $state<Record<string, 1 | -1 | 0>>({});
   error = $state<string | null>(null);
 
   tg: TrailGraph | null = null;
@@ -33,24 +44,24 @@ class WalkSession {
     return this.source !== null;
   }
 
-  isFor(trailId: string, from: string, to: string) {
-    return this.trailId === trailId && this.routeKey === `${from}>${to}`;
+  isFor(trailId: string) {
+    return this.trailId === trailId;
   }
 
-  start(bundle: TrailBundle, route: Route, source: LocationSource) {
+  start(bundle: TrailBundle, source: LocationSource) {
     this.stop();
     this.tg = trailGraph(bundle);
-    this.tracker = new Tracker(this.tg, route);
+    this.tracker = new Tracker(this.tg);
     this.trailId = bundle.id;
-    this.routeKey = `${route.from}>${route.to}`;
     this.status = 'waiting';
     this.position = null;
     this.rawFix = null;
     this.visited = [];
+    this.outlook = { kind: 'none' };
     this.arrival = null;
-    this.junctionAhead = null;
+    this.junction = null;
+    this.arrivalDirection = {};
     this.error = null;
-    this.next = this.tracker.nextStop();
     this.source = source;
     source.start(
       (fix) => this.onFix(fix),
@@ -67,7 +78,6 @@ class WalkSession {
   end() {
     this.stop();
     this.trailId = null;
-    this.routeKey = null;
     this.tracker = null;
   }
 
@@ -90,17 +100,27 @@ class WalkSession {
     this.error = null;
     this.rawFix = fix;
     const events = this.tracker.update(fix);
-    this.sync();
     for (const e of events) {
-      if (e.type === 'arrived') this.arrival = { stopIds: e.stopIds, at: fix.time };
-      if (e.type === 'junction') this.junctionAhead = e.nodeId;
-      for (const fn of this.listeners) fn(e);
+      if (e.type === 'arrived') {
+        this.arrival = { stopIds: e.stopIds, at: fix.time };
+        this.arrivalDirection = { ...this.arrivalDirection, ...Object.fromEntries(e.stopIds.map((id) => [id, e.direction])) };
+      }
+      if (e.type === 'junction') this.junction = { nodeId: e.nodeId, options: e.options };
     }
-    // Zapowiedź rozwidlenia znika, gdy je miniemy.
-    if (this.junctionAhead && this.tracker.position && this.tg) {
-      const node = this.tg.graph.nodes.get(this.junctionAhead)!;
-      if (!node.edges.includes(this.tracker.position.edgeId)) this.junctionAhead = null;
-    }
+    this.updateJunction();
+    this.sync();
+    for (const e of events) for (const fn of this.listeners) fn(e);
+  }
+
+  /** Opcje rozwidlenia znikają, gdy wejdziemy w którąś gałąź albo oddalimy się od węzła. */
+  private updateJunction() {
+    const j = this.junction;
+    const pos = this.tracker?.position;
+    if (!j || !pos || !this.tg) return;
+    const enteredBranch = j.options.some((o) => o.edgeId === pos.edgeId);
+    const node = this.tg.graph.nodes.get(j.nodeId)!;
+    const far = dist(this.tg.proj.forward(pos.point), node.xy) > this.tracker!.options.junctionWarning * 2;
+    if (enteredBranch || far) this.junction = null;
   }
 
   private sync() {
@@ -108,7 +128,7 @@ class WalkSession {
     this.status = t.status;
     this.position = t.position ? [t.position.point[0], t.position.point[1]] : null;
     this.visited = [...t.visited];
-    this.next = t.nextStop();
+    this.outlook = t.outlook();
   }
 }
 

@@ -4,6 +4,7 @@
  * (na telefonie i w symulatorze) oraz w testach.
  */
 import { dist, projectOnPolyline, type LonLat, type XY } from './geo.ts';
+import { branchOptions, lookAhead, type BranchOption, type StopAhead } from './explore.ts';
 import { distanceAlongGraph } from './graph.ts';
 import type { TrailBundle } from './schema.ts';
 import type { TrailGraph } from './trail-graph.ts';
@@ -26,8 +27,10 @@ export interface TrackerOptions {
   switchConfirmations: number;
   /** O ile metrów inny odcinek musi być bliżej, żeby liczyć go jako kandydata. */
   switchMargin: number;
-  /** Minimalny ruch wzdłuż odcinka, żeby ustalić kierunek [m]. */
-  directionThreshold: number;
+  /** Przesunięcie netto wzdłuż ścieżki w oknie czasowym, które ustala kierunek [m]. */
+  directionDistance: number;
+  /** Okno czasowe do ustalania kierunku [s]. */
+  directionWindow: number;
   /** Zapowiedź rozwidlenia z takiej odległości [m]; 0 = wyłączone. */
   junctionWarning: number;
 }
@@ -35,15 +38,18 @@ export interface TrackerOptions {
 export const DEFAULT_TRACKER_OPTIONS: TrackerOptions = {
   maxAccuracy: 50,
   offTrail: 60,
-  switchConfirmations: 2,
+  switchConfirmations: 3,
   switchMargin: 4,
-  directionThreshold: 3,
+  directionDistance: 15,
+  directionWindow: 60,
   junctionWarning: 50,
 };
 
 export type TrackerEvent =
-  | { type: 'arrived'; stopIds: string[] }
-  | { type: 'junction'; nodeId: string }
+  /** `direction`: kierunek marszu wzdłuż odcinka przystanku (0 = nieznany). */
+  | { type: 'arrived'; stopIds: string[]; direction: 1 | -1 | 0 }
+  /** Zbliżanie się do rozwidlenia; `options` bez gałęzi, którą przyszliśmy. */
+  | { type: 'junction'; nodeId: string; distance: number; options: BranchOption[] }
   | { type: 'offTrail' }
   | { type: 'backOnTrail' };
 
@@ -59,7 +65,12 @@ export interface TrailPosition {
 export type TrackerStatus = 'waiting' | 'on-trail' | 'off-trail';
 
 type Stop = TrailBundle['stops'][number];
-type Route = TrailBundle['routes'][number];
+
+/** Co pokazać użytkownikowi: przystanki przed nim (pewny kierunek) albo najbliższe wokół. */
+export type Outlook =
+  | { kind: 'ahead'; stops: StopAhead[]; junction: { nodeId: string; distance: number } | null }
+  | { kind: 'nearest'; stops: StopAhead[] }
+  | { kind: 'none' };
 
 export class Tracker {
   readonly options: TrackerOptions;
@@ -67,20 +78,22 @@ export class Tracker {
   position: TrailPosition | null = null;
   /** +1: w stronę węzła `to` odcinka, −1: w stronę `from`, 0: nieznany. */
   direction: 1 | -1 | 0 = 0;
+  /** Kierunek potwierdzony ruchem (przesunięcie netto albo przejście przez węzeł). */
+  private certain = false;
+  /** Ostatnie pozycje na bieżącym odcinku (czas, odległość wzdłuż), do ustalania kierunku. */
+  private history: { time: number; along: number }[] = [];
   /** Surowa pozycja ostatniego przyjętego odczytu. */
   lastFix: Fix | null = null;
   readonly visited = new Set<string>();
   ignoredFixes = 0;
 
   private pending: { edgeId: string; count: number } | null = null;
-  private movement = 0;
   /** Zapowiedziane rozwidlenia; zapominamy je dopiero po oddaleniu się. */
   private readonly announced = new Set<string>();
   private readonly stops: Stop[];
 
   constructor(
     private readonly tg: TrailGraph,
-    readonly route: Route | null = null,
     options: Partial<TrackerOptions> = {},
   ) {
     this.options = { ...DEFAULT_TRACKER_OPTIONS, ...options };
@@ -137,18 +150,28 @@ export class Tracker {
     }
     this.status = 'on-trail';
 
-    // Kierunek ruchu.
+    // Kierunek ruchu: z przesunięcia netto w oknie czasowym, odpornego na szum pojedynczych odczytów.
     if (prev && prev.edgeId !== chosen.edgeId) {
       const node = this.sharedNode(prev.edgeId, chosen.edgeId);
       const edge = this.tg.graph.edges.get(chosen.edgeId)!;
       this.direction = node === edge.from ? 1 : node === edge.to ? -1 : 0;
-      this.movement = 0;
-    } else if (prev) {
-      this.movement += chosen.along - prev.along;
-      if (Math.abs(this.movement) >= o.directionThreshold) {
-        this.direction = this.movement > 0 ? 1 : -1;
-        this.movement = 0;
-      }
+      this.certain = this.direction !== 0; // przejście przez węzeł to mocna przesłanka
+      this.history = [];
+    }
+    this.history.push({ time: fix.time, along: chosen.along });
+    const cutoff = fix.time - o.directionWindow * 1000;
+    while (this.history.length > 2 && this.history[0]!.time < cutoff) this.history.shift();
+    // Średnie z pierwszej i ostatniej trzeciej części okna — szum pojedynczych odczytów się znosi.
+    const k = Math.max(1, Math.floor(this.history.length / 3));
+    const mean = (xs: { along: number }[]) => xs.reduce((sum, x) => sum + x.along, 0) / xs.length;
+    const net = mean(this.history.slice(-k)) - mean(this.history.slice(0, k));
+    // Tuż po wejściu na odcinek (mało odczytów) ufamy kierunkowi wynikającemu z węzła.
+    if (this.history.length >= 6 && Math.abs(net) >= o.directionDistance) {
+      this.direction = net > 0 ? 1 : -1;
+      this.certain = true;
+    } else if (fix.time - this.history[0]!.time >= o.directionWindow * 1000 * 0.9) {
+      // Przez całe okno prawie bez ruchu (postój, kręcenie się): kierunek niepewny.
+      this.certain = false;
     }
 
     this.position = {
@@ -167,16 +190,25 @@ export class Tracker {
     for (const s of this.groupOf(stopId)) this.visited.add(s.id);
   }
 
-  /** Następny nieodwiedzony przystanek na trasie i odległość do niego po ścieżce. */
-  nextStop(): { stopId: string; distance: number | null } | null {
-    const order = this.route?.stops ?? this.stops.map((s) => s.id);
-    const id = order.find((sid) => !this.visited.has(sid));
-    if (!id) return null;
-    const stop = this.stops.find((s) => s.id === id)!;
-    const distance = this.position
-      ? distanceAlongGraph(this.tg.graph, { edgeId: this.position.edgeId, along: this.position.along }, { edgeId: stop.segmentId, along: stop.along })
-      : null;
-    return { stopId: id, distance };
+  get directionCertain() {
+    return this.direction !== 0 && this.certain;
+  }
+
+  /** Co jest przed nami (przy pewnym kierunku) albo najbliższe nieodwiedzone przystanki. */
+  outlook(limit = 2): Outlook {
+    const pos = this.position;
+    if (!pos || this.status !== 'on-trail') return { kind: 'none' };
+    if (this.directionCertain) {
+      const a = lookAhead(this.tg, pos.edgeId, pos.along, this.direction as 1 | -1, this.visited);
+      return { kind: 'ahead', stops: a.stops.slice(0, limit), junction: a.junction };
+    }
+    const here = { edgeId: pos.edgeId, along: pos.along };
+    const stops = this.stops
+      .filter((s) => !this.visited.has(s.id))
+      .map((s) => ({ stopId: s.id, distance: distanceAlongGraph(this.tg.graph, here, { edgeId: s.segmentId, along: s.along }) }))
+      .sort((a, b) => a.distance - b.distance)
+      .slice(0, limit);
+    return { kind: 'nearest', stops };
   }
 
   private checkStops(): TrackerEvent[] {
@@ -189,7 +221,7 @@ export class Tracker {
       if (Math.abs(s.along - pos.along) <= s.radius) {
         const group = this.groupOf(s.id).filter((g) => !this.visited.has(g.id));
         for (const g of group) this.visited.add(g.id);
-        events.push({ type: 'arrived', stopIds: group.map((g) => g.id) });
+        events.push({ type: 'arrived', stopIds: group.map((g) => g.id), direction: this.directionCertain ? this.direction : 0 });
       }
     }
     return events;
@@ -208,9 +240,9 @@ export class Tracker {
     const nodeId = this.direction === 1 ? edge.to : edge.from;
     const node = this.tg.graph.nodes.get(nodeId)!;
     const toNode = this.direction === 1 ? edge.length - pos.along : pos.along;
-    if (node.edges.length >= 3 && toNode <= junctionWarning && !this.announced.has(nodeId)) {
+    if (this.directionCertain && node.edges.length >= 3 && toNode <= junctionWarning && !this.announced.has(nodeId)) {
       this.announced.add(nodeId);
-      return [{ type: 'junction', nodeId }];
+      return [{ type: 'junction', nodeId, distance: toNode, options: branchOptions(this.tg, nodeId, pos.edgeId, this.visited) }];
     }
     return [];
   }

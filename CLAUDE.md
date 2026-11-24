@@ -17,7 +17,7 @@ programistyczne i GIS (QGIS, Python). Komunikacja po polsku, zwracamy się „Pa
   `<id>.<lang>.m4a`, zdjęcia `<id>-N.jpg`. Szczegóły w README.
 - **Model ścieżki:** sieć odcinków będąca **drzewem** (bez pętli). Rozwidlenia to zwykle
   alternatywne **wejścia**; nieliczne ślepe odnogi (np. punkt widokowy) chodzi się tam i z powrotem.
-- **Bez narzucania trasy** (decyzja z rozmowy po etapie 3, do wdrożenia): użytkownik nie
+- **Bez narzucania trasy** (wdrożone na `etap-3`): użytkownik nie
   wybiera trasy ani celu; aplikacja reaguje na ruch. Bez szacowania czasu i bez sekcji
   „możliwe przejścia” — tylko licznik „X z Y przystanków”. Kierunek marszu wynika z ruchu
   wzdłuż odcinka; „przed Tobą” pokazujemy tylko przy pewnym kierunku, inaczej najbliższe

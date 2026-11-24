@@ -22,7 +22,8 @@ describe('build ścieżki przykładowej', () => {
     expect(res.messages.filter((m) => m.level !== 'info')).toEqual([]);
     expect(res.ok).toBe(true);
     const trail = trailBundleSchema.parse(JSON.parse(readFileSync(join(out, 'trails/przyklad/trail.json'), 'utf8')));
-    expect(trail.entrances.map((e) => e.id).sort()).toEqual(['parking', 'przelecz', 'wies']);
+    expect(trail.entrances.filter((e) => e.kind === 'entrance').map((e) => e.id).sort()).toEqual(['parking', 'przelecz', 'wies']);
+    expect(trail.entrances.find((e) => e.id === 'punkt-widokowy')?.kind).toBe('end');
     const route = trail.routes.find((r) => r.from === 'przelecz' && r.to === 'parking')!;
     expect(route.stops).toEqual(['09', '08', '07', '06', '04', '03', '02', '01']);
     const files = res.manifest!.trails[0]!.files;

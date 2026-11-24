@@ -13,7 +13,7 @@ description:
     A fictional trail for testing: three entrances, junctions,
     a dead-end spur to a viewpoint and two close stops by the springs.
 
-# Nazwy wejść; klucze = atrybut "id" w warstwie "entrances".
+# Nazwy wejść i ślepych końców; klucze = atrybut "id" w warstwie "entrances".
 entrances:
   parking:
     pl: Parking przy leśniczówce
@@ -24,6 +24,9 @@ entrances:
   wies:
     pl: Wejście od strony wsi
     en: Village entrance
+  punkt-widokowy:
+    pl: Punkt widokowy
+    en: Viewpoint
 
 # Kierunek, w którym napisano drukowany przewodnik.
 guideDirection:

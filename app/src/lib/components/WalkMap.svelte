@@ -6,11 +6,8 @@
   import { onDestroy, onMount } from 'svelte';
   import type { TrailBundle } from '@sciezki/core';
 
-  type Route = TrailBundle['routes'][number];
-
   let {
     trail,
-    route,
     visited,
     nextStopId,
     position,
@@ -21,7 +18,6 @@
     follow = $bindable(true),
   }: {
     trail: TrailBundle;
-    route: Route | undefined;
     visited: string[];
     nextStopId: string | null;
     position: [number, number] | null;
@@ -41,7 +37,8 @@
   let raw: maplibregl.Marker | undefined;
 
   function segmentsGeoJSON(): GeoJSON.FeatureCollection {
-    const onRoute = new Set(route?.segments.map((s) => s.id) ?? []);
+    // Bez narzuconej trasy wszystkie odcinki są „trasą”; pole zostaje do ewentualnego wyróżniania.
+    const onRoute = new Set(trail.segments.map((s) => s.id));
     return {
       type: 'FeatureCollection',
       features: trail.segments.map((s) => ({

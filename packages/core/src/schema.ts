@@ -48,7 +48,7 @@ export const trailSourceSchema = z.object({
   subtitle: localized.optional(),
   /** Opis w Markdownie. */
   description: localized.optional(),
-  /** Nazwy wejść, kluczowane atrybutem `id` z warstwy `entrances`. */
+  /** Nazwy wejść i nazwanych ślepych końców, kluczowane atrybutem `id` z warstwy `entrances`. */
   entrances: z.record(slug, localized),
   /** Kierunek, w którym napisano drukowany przewodnik. */
   guideDirection: z.object({ from: slug, to: slug }).optional(),
@@ -106,7 +106,8 @@ export const trailBundleSchema = z.object({
       coords: z.array(lonLat).min(2),
     }),
   ),
-  entrances: z.array(z.object({ id: slug, nodeId: z.string() })),
+  /** Nazwane końce ścieżki: wejścia i ślepe końce (np. punkt widokowy). */
+  entrances: z.array(z.object({ id: slug, nodeId: z.string(), kind: z.enum(['entrance', 'end']).default('entrance') })),
   stops: z.array(
     z.object({
       id: slug,

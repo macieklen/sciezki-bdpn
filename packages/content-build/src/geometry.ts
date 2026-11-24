@@ -100,7 +100,7 @@ export function processGeometry(gpkgPath: string, source: TrailSource, r: Report
   if (issues.some((i) => i.level === 'error')) return null;
 
   // ── Wejścia ──
-  const entrances: { id: string; nodeId: string }[] = [];
+  const entrances: { id: string; nodeId: string; kind: 'entrance' | 'end' }[] = [];
   const nodeEntrance = new Map<string, string>();
   for (const f of entL.features) {
     const id = str(f.properties.id);
@@ -114,17 +114,28 @@ export function processGeometry(gpkgPath: string, source: TrailSource, r: Report
     }
     if (nodeEntrance.has(node.id)) { r.error(`Wejścia "${nodeEntrance.get(node.id)}" i "${id}" wskazują ten sam węzeł.`); continue; }
     if (entrances.some((e) => e.id === id)) { r.error(`Zdublowane id wejścia "${id}".`); continue; }
+    const type = str(f.properties.type)?.toLowerCase();
+    const kind = type === 'koniec' || type === 'end' ? 'end' : 'entrance';
+    if (type && !['wejscie', 'wejście', 'entrance', 'koniec', 'end'].includes(type)) {
+      r.warning(`Wejście "${id}": nieznany typ "${type}" (dozwolone: wejscie, koniec) — przyjęto "wejscie".`);
+    }
+    if (kind === 'end' && graph.nodes.get(node.id)!.edges.length !== 1) {
+      r.warning(`Koniec "${id}" nie leży na ślepym końcu ścieżki.`);
+    }
     nodeEntrance.set(node.id, id);
-    entrances.push({ id, nodeId: node.id });
+    entrances.push({ id, nodeId: node.id, kind });
     if (!source.entrances[id]) r.error(`Wejście "${id}" nie ma nazwy w trail.yaml (sekcja entrances).`);
   }
   for (const id of Object.keys(source.entrances)) {
     if (!entrances.some((e) => e.id === id)) r.warning(`trail.yaml: wejście "${id}" nie występuje w warstwie "entrances".`);
   }
-  if (entrances.length === 0) r.error('Ścieżka nie ma żadnego wejścia.');
+  if (!entrances.some((e) => e.kind === 'entrance')) r.error('Ścieżka nie ma żadnego wejścia.');
   for (const n of graph.nodes.values()) {
     if (n.edges.length === 1 && !nodeEntrance.has(n.id)) {
-      r.info(`Ślepy koniec odcinka "${n.edges[0]}" (nie jest wejściem) — np. punkt widokowy.`);
+      r.warning(
+        `Ślepy koniec odcinka "${n.edges[0]}" nie ma nazwy. Dodaj punkt w warstwie "entrances" (type = koniec), ` +
+          'żeby aplikacja mogła opisać tę odnogę przy rozwidleniu.',
+      );
     }
   }
 
@@ -184,8 +195,9 @@ export function processGeometry(gpkgPath: string, source: TrailSource, r: Report
   // ── Trasy między wejściami ──
   const routes: TrailGeometry['routes'] = [];
   const onRoute = new Set<string>();
-  for (const a of entrances) {
-    for (const b of entrances) {
+  const realEntrances = entrances.filter((e) => e.kind === 'entrance');
+  for (const a of realEntrances) {
+    for (const b of realEntrances) {
       if (a.id === b.id) continue;
       const path = pathBetween(graph, a.nodeId, b.nodeId);
       if (!path) continue;
@@ -205,7 +217,7 @@ export function processGeometry(gpkgPath: string, source: TrailSource, r: Report
     }
   }
   for (const s of stops) {
-    if (entrances.length > 1 && !onRoute.has(s.id)) r.info(`Przystanek "${s.id}" leży na odnodze poza trasami między wejściami.`);
+    if (realEntrances.length > 1 && !onRoute.has(s.id)) r.info(`Przystanek "${s.id}" leży na odnodze poza trasami między wejściami.`);
   }
 
   if (source.guideDirection) {

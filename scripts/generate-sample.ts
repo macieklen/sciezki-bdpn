@@ -37,10 +37,11 @@ const segments: Record<string, XY[]> = {
   'zrodla-wies': [[420, 1700], [250, 1760], [80, 1850], [-120, 1880]],
 };
 
-const entrances: { id: string; at: XY }[] = [
-  { id: 'parking', at: [2, -2] },
-  { id: 'przelecz', at: [701, 2302] },
-  { id: 'wies', at: [-121, 1882] },
+const entrances: { id: string; at: XY; type: 'wejscie' | 'koniec' }[] = [
+  { id: 'parking', at: [2, -2], type: 'wejscie' },
+  { id: 'przelecz', at: [701, 2302], type: 'wejscie' },
+  { id: 'wies', at: [-121, 1882], type: 'wejscie' },
+  { id: 'punkt-widokowy', at: [521, 1171], type: 'koniec' },
 ];
 
 interface StopDef {
@@ -121,8 +122,8 @@ writeGpkg(join(dir, 'trail.gpkg'), [
   {
     name: 'entrances',
     geometryType: 'POINT',
-    columns: { id: 'TEXT' },
-    features: entrances.map((e) => ({ geometry: { type: 'Point', coordinates: ll(e.at) }, properties: { id: e.id } })),
+    columns: { id: 'TEXT', type: 'TEXT' },
+    features: entrances.map((e) => ({ geometry: { type: 'Point', coordinates: ll(e.at) }, properties: { id: e.id, type: e.type } })),
   },
   {
     name: 'stops',
@@ -153,7 +154,7 @@ description:
     A fictional trail for testing: three entrances, junctions,
     a dead-end spur to a viewpoint and two close stops by the springs.
 
-# Nazwy wejść; klucze = atrybut "id" w warstwie "entrances".
+# Nazwy wejść i ślepych końców; klucze = atrybut "id" w warstwie "entrances".
 entrances:
   parking:
     pl: Parking przy leśniczówce
@@ -164,6 +165,9 @@ entrances:
   wies:
     pl: Wejście od strony wsi
     en: Village entrance
+  punkt-widokowy:
+    pl: Punkt widokowy
+    en: Viewpoint
 
 # Kierunek, w którym napisano drukowany przewodnik.
 guideDirection:

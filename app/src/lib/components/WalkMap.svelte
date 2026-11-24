@@ -74,7 +74,8 @@
       container,
       style: basemapStyle(bm?.url ?? null, '© OpenStreetMap contributors'),
       bounds: [w, s, e, n],
-      fitBoundsOptions: { padding: { top: 120, bottom: 220, left: 40, right: 40 } },
+      // Kadr ścieżki omija górną kartę, dolny panel i przyciski po prawej (+ zapas na etykiety).
+      fitBoundsOptions: { padding: { top: topInset + 36, bottom: bottomInset + 24, left: 32, right: 84 } },
       minZoom: 9,
       maxZoom: 18,
       attributionControl: bm ? { compact: true } : false,
@@ -84,6 +85,8 @@
     map.touchZoomRotate.disableRotation();
     map.on('dragstart', () => (follow = false));
     map.on('move', updateEdge);
+    // Stojący telefon nie przysyła nowych odczytów — przelicz znacznik zaraz po załadowaniu mapy.
+    map.on('load', updateEdge);
     map.on('resize', updateEdge);
 
     map.on('load', () => {
@@ -118,7 +121,9 @@
       if (!node) continue;
       const label = el('div', 'entrance', entranceNames[ent.id] ?? ent.id);
       entranceLabels.set(ent.id, label);
-      new maplibregl.Marker({ element: label, anchor: 'left', offset: [10, 0] })
+      // Etykieta przy samej prawej krawędzi ścieżki idzie na lewo od punktu (inaczej wchodzi pod przyciski).
+      const onRight = node.coord[0] > trail.bbox[0] + 0.85 * (trail.bbox[2] - trail.bbox[0]);
+      new maplibregl.Marker({ element: label, anchor: onRight ? 'right' : 'left', offset: [onRight ? -10 : 10, 0] })
         .setLngLat(node.coord)
         .addTo(map);
     }

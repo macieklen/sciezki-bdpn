@@ -108,7 +108,9 @@
   let follow = $state(true);
   let bottomHeight = $state(200);
   let statusHeight = $state(70);
-  const topInset = $derived(statusHeight + 14);
+  let statusEl: HTMLElement | undefined = $state();
+  // Dolna krawędź górnej karty (z paskiem stanu telefonu, czyli safe-area).
+  const topInset = $derived(statusEl ? statusEl.offsetTop + statusHeight : statusHeight + 14);
   let mapRef: WalkMap | undefined = $state();
   let showList = $state(false);
   let showSim = $state(true);
@@ -148,7 +150,7 @@
 
   <div class="triad top-stripe"><span></span></div>
 
-  <header class="status-card" bind:clientHeight={statusHeight}>
+  <header class="status-card" bind:this={statusEl} bind:clientHeight={statusHeight}>
     <span class="dot" class:off={walk.status !== 'on-trail'}></span>
     <div class="status-text">
       <div class="small">{t().walking} · {t().visitedOf(walk.visited.length, trail.stops.length)}</div>

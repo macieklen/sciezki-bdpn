@@ -186,6 +186,8 @@ export const manifestSchema = z.object({
       name: localized,
       length: z.number(),
       stopCount: z.number().int(),
+      /** Miniatura zdjęcia tytułowego (ścieżka względem katalogu treści). */
+      cover: z.string().optional(),
       bbox: z.tuple([z.number(), z.number(), z.number(), z.number()]),
       files: z.array(manifestFileSchema),
     }),

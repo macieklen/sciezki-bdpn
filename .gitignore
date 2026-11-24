@@ -3,3 +3,6 @@ dist/
 .cache/
 *.log
 .DS_Store
+app/.svelte-kit/
+app/build/
+app/static/content/

@@ -1,0 +1,121 @@
+/* Tokeny z księgi znaku BdPN + warianty pod czytelność na ekranie w terenie. */
+:root {
+  --green: #508246; /* zieleń z księgi znaku: powierzchnie, paski */
+  --green-text: #3f6b37; /* ciemniejsza zieleń do tekstu i ikon (kontrast ≥ 6:1) */
+  --brown: #443425;
+  --sand: #d6b269;
+  --taupe: #84725a;
+  --grey: #585858;
+  --grey-light: #d8d8d8;
+  --panel: #4e4c4d; /* ciemnoszary pasek jak na tablicach */
+  --ink: #2e2b28;
+  --bg: #f4f3f0;
+  --surface: #ffffff;
+  --line: #e6e4e0;
+  --sand-soft: #f6f0e0;
+
+  --radius: 14px;
+  --gutter: 20px;
+  --tap: 48px;
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+
+  font-family: 'Lato', system-ui, sans-serif;
+  color: var(--ink);
+  background: var(--bg);
+  -webkit-text-size-adjust: 100%;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  min-height: 100dvh;
+}
+
+h1,
+h2,
+h3,
+p {
+  margin: 0;
+}
+
+a {
+  color: var(--green-text);
+}
+
+button {
+  font: inherit;
+  color: inherit;
+}
+
+:focus-visible {
+  outline: 3px solid var(--sand);
+  outline-offset: 2px;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+/* Pasek z triady kolorów Polskich Parków Narodowych. */
+.triad {
+  display: flex;
+  height: 8px;
+}
+.triad::before,
+.triad::after,
+.triad > span {
+  content: '';
+  flex: 1;
+}
+.triad::before {
+  background: var(--green);
+}
+.triad > span {
+  background: var(--brown);
+}
+.triad::after {
+  background: var(--sand);
+}
+
+.badge {
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--sand);
+  color: var(--brown);
+  font-weight: 900;
+  font-size: 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Treść przystanku z Markdownu. */
+.prose {
+  font-size: 18px;
+  line-height: 1.6;
+}
+.prose p + p {
+  margin-top: 0.9em;
+}
+.prose em {
+  color: var(--grey);
+}
+
+.page {
+  max-width: 640px;
+  margin: 0 auto;
+}

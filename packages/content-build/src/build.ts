@@ -279,9 +279,16 @@ async function buildTrail(
     name: Object.fromEntries(languages.map((l) => [l, texts[l]!.trail.name])),
     length: bundle.length,
     stopCount: bundle.stops.length,
+    cover: bundle.cover ? relative(outRoot, join(out, smallest(bundle.cover.variants))).split(sep).join('/') : undefined,
     bbox: bundle.bbox,
     files: manifestFiles,
   };
+}
+
+/** Najmniejszy wariant zdjęcia. */
+function smallest(variants: Record<string, string>): string {
+  const w = Object.keys(variants).map(Number).sort((a, b) => a - b)[0]!;
+  return variants[String(w)]!;
 }
 
 async function findCover(dir: string): Promise<string | null> {

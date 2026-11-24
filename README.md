@@ -12,6 +12,7 @@ content/                 treści źródłowe (edytowane ręcznie)
   trails/<id>/           jedna ścieżka
 packages/core/           wspólne dla buildu i aplikacji: schematy danych, geometria, graf ścieżki
 packages/content-build/  build treści: content/ → dist/content/ (paczki dla aplikacji)
+app/                     aplikacja (SvelteKit, Svelte 5, tryb SPA pod Capacitor)
 scripts/                 narzędzia pomocnicze (np. generator ścieżki przykładowej)
 ```
 
@@ -19,9 +20,16 @@ Wymagania: Node.js ≥ 22.13, `ffmpeg` i `ffprobe` w PATH.
 
 ```bash
 npm install
-npm run build:content   # buduje paczki do dist/content/ i raportuje problemy
+npm run dev             # aplikacja na http://localhost:5173 z podglądem treści na żywo
+npm run build:content   # tylko paczki treści do dist/content/ i raport problemów
+npm run build           # treści + aplikacja do app/build/
 npm test
+npm run check           # typy (TypeScript + Svelte)
 ```
+
+`npm run dev` buduje treści przy starcie i po każdej zapisanej zmianie w `content/`
+(GeoPackage, teksty, zdjęcia, nagrania), a potem przeładowuje stronę w przeglądarce.
+Problemy z danymi widać w terminalu.
 
 ## Jak przygotować ścieżkę
 

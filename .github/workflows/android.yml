@@ -56,7 +56,8 @@ jobs:
         with:
           name: sciezki-bdpn-debug
           path: app/android/app/build/outputs/apk/debug/*.apk
-          retention-days: 30
+          # Krótko: APK do instalacji jest w wydaniu „testowa” (nie wlicza się do limitu 500 MB na artefakty).
+          retention-days: 3
 
       # Stałe wydanie "testowa" z najnowszym APK — wygodne do pobrania na telefonie.
       - name: Wydanie testowe

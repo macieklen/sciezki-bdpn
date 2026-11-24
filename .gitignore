@@ -9,3 +9,4 @@ app/static/content/
 map/.cache/
 map/out/
 *.qix
+shots/

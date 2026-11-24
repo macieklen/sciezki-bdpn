@@ -6,7 +6,8 @@
   import { simulateWalk, trailGraph, walkThroughNodes, parseGpx, type Fix, type TrailTexts } from '@sciezki/core';
   import { loadTexts } from '$lib/content';
   import { formatDistance, i18n, t } from '$lib/i18n.svelte';
-  import { SimulatedLocation, WebLocation } from '$lib/location.svelte';
+  import { NativeLocation, SimulatedLocation, WebLocation, isNative } from '$lib/location.svelte';
+  import { notifyArrival, prepareNotifications } from '$lib/notify';
   import { defaultEnd, defaultStart, findRoute } from '$lib/route';
   import { walk } from '$lib/walk.svelte';
   import Icon from '$lib/components/Icon.svelte';
@@ -63,7 +64,11 @@
       if (sim) s.speed = sim.speed;
       sim = s;
       walk.start(trail, route, s);
+    } else if (isNative()) {
+      prepareNotifications(t().notificationChannel);
+      walk.start(trail, route, new NativeLocation(t().backgroundMessage, t().walking));
     } else {
+      prepareNotifications(t().notificationChannel);
       walk.start(trail, route, new WebLocation());
     }
   }
@@ -83,11 +88,8 @@
     else if (walk.source?.kind === 'sym') sim = walk.source as SimulatedLocation;
     offEvent = walk.onEvent((e) => {
       if (e.type !== 'arrived') return;
-      navigator.vibrate?.([200, 100, 200]);
-      if (document.hidden && 'Notification' in window && Notification.permission === 'granted') {
-        const s = stopsById.get(e.stopIds[0]!)!;
-        new Notification(`${t().arrivedAt} ${s.number}`, { body: e.stopIds.map(title).join(' · '), tag: 'przystanek' });
-      }
+      const s = stopsById.get(e.stopIds[0]!)!;
+      notifyArrival(`${t().arrivedAt} ${s.number}`, e.stopIds.map(title).join(' · '), stopHref(s.id));
     });
   });
   onDestroy(() => offEvent?.());

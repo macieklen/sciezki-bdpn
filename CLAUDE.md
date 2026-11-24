@@ -63,8 +63,13 @@ programistyczne i GIS (QGIS, Python). Komunikacja po polsku, zwracamy się „Pa
    podkładu), panelem następnego przystanku, listą „Jestem przy przystanku”;
    `?zrodlo=sym` włącza panel symulatora.
    ⏭ Do omówienia z właścicielem: pipeline kafelków mapy (Python/GDAL, Planetiler, NMT).
-4. Offline: pobieranie paczek, aktualizacje przez manifest, service worker / PWA.
-5. Capacitor: lokalizacja w tle, powiadomienia, natywne audio, testy w terenie.
+5. 🔧 Capacitor (przesunięty przed offline, żeby testować GPS w terenie): projekt `app/android`,
+   `NativeLocation` (@capacitor-community/background-geolocation, `useLegacyBridge`),
+   powiadomienia lokalne o przystankach (`lib/notify.ts`), ikona z logo, skrypty
+   `android:run`, `android:live`, `apk`, workflow GitHub Actions budujący APK.
+   Do zrobienia: pierwsze uruchomienie na telefonie (sesja desktopowa, USB), natywne audio,
+   iOS (wymaga Maca).
+4. Offline (po Capacitorze): pobieranie paczek, aktualizacje przez manifest, service worker / PWA.
 6. Publikacja w sklepach.
 
 ## Praca z repozytorium

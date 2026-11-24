@@ -63,6 +63,8 @@ const messages = {
     simPause: 'Pauza',
     restart: 'Od nowa',
     mapNote: 'Podkład mapy pojawi się wraz z kafelkami parku.',
+    notificationChannel: 'Przystanki na ścieżce',
+    backgroundMessage: 'Powiadomimy Cię, gdy zbliżysz się do przystanku.',
   },
   en: {
     trails: 'Nature trails',
@@ -123,6 +125,8 @@ const messages = {
     simPause: 'Pause',
     restart: 'Restart',
     mapNote: 'The base map will appear with the park tiles.',
+    notificationChannel: 'Trail stops',
+    backgroundMessage: 'We will let you know when you approach a stop.',
   },
 } as const;
 

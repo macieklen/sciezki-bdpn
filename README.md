@@ -41,6 +41,34 @@ otwiera mapę z panelem symulatora (scenariusze, tempo ×1/×10/×30, szum GPS, 
 (GeoPackage, teksty, zdjęcia, nagrania), a potem przeładowuje stronę w przeglądarce.
 Problemy z danymi widać w terminalu.
 
+## Android: telefon i APK
+
+Jednorazowo: zainstaluj [Android Studio](https://developer.android.com/studio) (SDK, `adb`, Java),
+a na telefonie włącz **Opcje programisty → Debugowanie USB** (7× stuknij „Numer kompilacji”
+w „Informacje o telefonie”). Po podłączeniu kabla potwierdź na telefonie zgodę na debugowanie.
+
+```bash
+npm run android:run     # build i instalacja na podłączonym telefonie (lub emulatorze)
+npm run apk             # samo APK: app/android/app/build/outputs/apk/debug/app-debug.apk
+```
+
+**Live reload** — zmiany w kodzie i treściach od razu na telefonie (telefon i komputer
+w tej samej sieci Wi-Fi), w dwóch terminalach:
+
+```bash
+npm run dev -- --host
+```
+```bash
+npm run android:live
+```
+
+Projekt Android Studio jest w `app/android` (otwórz go w Android Studio, żeby podejrzeć logi
+w Logcat). Każde wysłanie zmian na GitHub buduje też testowe APK automatycznie
+(zakładka **Actions** → przebieg → **Artifacts**).
+
+Spacer w aplikacji natywnej śledzi położenie także przy zablokowanym ekranie
+(Android: stałe powiadomienie „Trwający spacer”) i wysyła powiadomienia o przystankach.
+
 ## Jak przygotować ścieżkę
 
 ```

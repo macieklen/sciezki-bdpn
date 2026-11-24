@@ -2,6 +2,8 @@
  * Źródła położenia. W etapie 5 dojdzie źródło natywne (Capacitor, praca w tle)
  * o tym samym interfejsie.
  */
+import { Capacitor, registerPlugin } from '@capacitor/core';
+import type { BackgroundGeolocationPlugin } from '@capacitor-community/background-geolocation';
 import type { Fix } from '@sciezki/core';
 
 export interface LocationSource {
@@ -81,5 +83,57 @@ export class SimulatedLocation implements LocationSource {
   stop() {
     this.pause();
     this.onFix = null;
+  }
+}
+
+// ── Źródło natywne (Capacitor): działa także przy zablokowanym ekranie ──
+
+export const isNative = () => Capacitor.isNativePlatform();
+
+const BackgroundGeolocation = registerPlugin<BackgroundGeolocationPlugin>('BackgroundGeolocation');
+
+export class NativeLocation implements LocationSource {
+  readonly kind = 'gps';
+  private watcherId: string | null = null;
+  private stopped = false;
+
+  constructor(private readonly backgroundMessage: string, private readonly backgroundTitle: string) {}
+
+  start(onFix: (fix: Fix) => void, onError: (message: string) => void) {
+    this.stopped = false;
+    BackgroundGeolocation.addWatcher(
+      {
+        // Podanie komunikatu włącza pracę w tle (Android: usługa pierwszoplanowa ze stałym powiadomieniem).
+        backgroundMessage: this.backgroundMessage,
+        backgroundTitle: this.backgroundTitle,
+        requestPermissions: true,
+        stale: false,
+        distanceFilter: 5,
+      },
+      (location, error) => {
+        if (error) {
+          if (error.code === 'NOT_AUTHORIZED') {
+            onError('Brak zgody na dostęp do położenia. Włącz ją w ustawieniach aplikacji.');
+          } else onError(error.message);
+          return;
+        }
+        if (location) {
+          onFix({ lon: location.longitude, lat: location.latitude, accuracy: location.accuracy, time: location.time ?? Date.now() });
+        }
+      },
+    ).then((id) => {
+      if (this.stopped) BackgroundGeolocation.removeWatcher({ id });
+      else this.watcherId = id;
+    });
+  }
+
+  stop() {
+    this.stopped = true;
+    if (this.watcherId) BackgroundGeolocation.removeWatcher({ id: this.watcherId });
+    this.watcherId = null;
+  }
+
+  static openSettings() {
+    return BackgroundGeolocation.openSettings();
   }
 }

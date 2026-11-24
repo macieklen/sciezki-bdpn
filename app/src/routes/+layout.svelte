@@ -4,13 +4,18 @@
   import '@fontsource/lato/700.css';
   import '@fontsource/lato/900.css';
   import '../app.css';
+  import { goto } from '$app/navigation';
   import { i18n } from '$lib/i18n.svelte';
+  import { onNotificationTap } from '$lib/notify';
 
   let { children } = $props();
 
   $effect(() => {
     document.documentElement.lang = i18n.lang;
   });
+
+  // Dotknięcie powiadomienia o przystanku otwiera jego ekran.
+  onNotificationTap((url) => goto(url));
 </script>
 
 {@render children()}

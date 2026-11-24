@@ -3,7 +3,7 @@
   import maplibregl from 'maplibre-gl';
   import { basemapUrl } from '$lib/basemap';
   import { basemapStyle } from '$lib/map-style';
-  import { formatDistance, i18n, t } from '$lib/i18n.svelte';
+  import { t } from '$lib/i18n.svelte';
   import { onDestroy, onMount } from 'svelte';
   import type { TrailBundle } from '@sciezki/core';
 
@@ -85,6 +85,7 @@
     map.touchZoomRotate.disableRotation();
     map.on('dragstart', () => (follow = false));
     map.on('move', updateEdge);
+    map.on('zoom', () => (far = map!.getZoom() < FAR_ZOOM));
     // Stojący telefon nie przysyła nowych odczytów — przelicz znacznik zaraz po załadowaniu mapy.
     map.on('load', updateEdge);
     map.on('resize', updateEdge);
@@ -182,8 +183,13 @@
     (map?.getSource('odcinki') as maplibregl.GeoJSONSource | undefined)?.setData(data);
   });
 
+  // Przy dużym oddaleniu przystanki i etykiety zlewają się — chowamy je, zostaje linia ścieżki.
+  const FAR_ZOOM = 12.5;
+  let far = $state(false);
+
   // ── Znacznik pozycji na krawędzi mapy, gdy pozycja jest poza widokiem ──
-  let edge = $state<{ x: number; y: number; angle: number; distance: number } | null>(null);
+  // Tylko kierunek: odległość od ścieżki pokazuje dolny panel (odległość od środka widoku myliła).
+  let edge = $state<{ x: number; y: number; angle: number } | null>(null);
   const EDGE_MARGIN = 38;
 
   function updateEdge() {
@@ -207,12 +213,10 @@
     const sx = dx ? ((dx > 0 ? r.r : r.l) - cx) / dx : Infinity;
     const sy = dy ? ((dy > 0 ? r.b : r.t) - cy) / dy : Infinity;
     const k = Math.min(sx, sy);
-    const at = map.unproject([cx, cy]);
     edge = {
       x: cx + dx * k,
       y: cy + dy * k,
       angle: (Math.atan2(dy, dx) * 180) / Math.PI,
-      distance: at.distanceTo(new maplibregl.LngLat(position[0], position[1])),
     };
   }
 
@@ -229,18 +233,17 @@
   }
 </script>
 
-<div class="map" bind:this={container}></div>
+<div class="map" class:far bind:this={container}></div>
 {#if edge}
   <button
     class="edge-marker"
     style:left="{edge.x}px"
     style:top="{edge.y}px"
-    aria-label="{t().centerOnMe} · {formatDistance(edge.distance, i18n.lang)}"
+    aria-label={t().centerOnMe}
     onclick={centerOnMe}
   >
     <span class="pointer" style:transform="rotate({edge.angle}deg)"><span class="beak"></span></span>
     <span class="edge-dot"></span>
-    <span class="edge-label">{formatDistance(edge.distance, i18n.lang)}</span>
   </button>
 {/if}
 
@@ -293,6 +296,10 @@
     border: 3px solid #fff;
     box-shadow: 0 0 0 10px rgba(47, 111, 176, 0.18), 0 1px 3px rgba(0, 0, 0, 0.3);
   }
+  .map.far :global(.stop),
+  .map.far :global(.entrance) {
+    visibility: hidden;
+  }
   .edge-marker {
     position: absolute;
     z-index: 2;
@@ -328,18 +335,6 @@
     background: #2f6fb0;
     border: 3px solid #fff;
     box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
-  }
-  .edge-label {
-    position: absolute;
-    top: 44px;
-    left: 50%;
-    transform: translateX(-50%);
-    padding: 1px 6px;
-    border-radius: 8px;
-    background: rgba(255, 255, 255, 0.92);
-    color: #2f6fb0;
-    font: 700 12px/1.3 Lato, sans-serif;
-    white-space: nowrap;
   }
   .map :global(.raw) {
     width: 8px;

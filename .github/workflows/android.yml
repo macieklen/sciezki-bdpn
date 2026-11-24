@@ -24,7 +24,8 @@ jobs:
           distribution: temurin
           java-version: 21
 
-      - uses: android-actions/setup-android@v3
+      # Android SDK jest preinstalowany na maszynach GitHuba (ANDROID_HOME);
+      # brakujące składniki Gradle dociągnie sam.
 
       - name: ffmpeg
         run: sudo apt-get update && sudo apt-get install -y ffmpeg

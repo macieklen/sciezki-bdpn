@@ -1,0 +1,150 @@
+# Odchudzony schemat kafelków mapy dla aplikacji ścieżek BdPN (Planetiler custommap).
+# Zawiera tylko to, co potrzebne pieszemu w parku; styl rysuje aplikacja (MapLibre).
+schema_name: Ścieżki BdPN
+schema_description: Podkład mapy obszaru Bieszczadzkiego Parku Narodowego
+attribution: <a href="https://www.openstreetmap.org/copyright" target="_blank">&copy; OpenStreetMap contributors</a>
+
+args:
+  osm_path:
+    description: Wycinek OSM (.osm.pbf)
+    default: .cache/podkarpackie.osm.pbf
+  boundary_path:
+    description: Granica parku (Shapefile z plikiem .prj)
+    default: data/granica_bdpn_uproszczona.shp
+
+sources:
+  osm:
+    type: osm
+    local_path: '${ args.osm_path }'
+  granica:
+    type: shapefile
+    local_path: '${ args.boundary_path }'
+
+layers:
+  # ── Pokrycie terenu: las, połoniny, łąki, zabudowa ──
+  - id: landcover
+    features:
+      - source: osm
+        geometry: polygon
+        min_zoom: 8
+        min_size: 2
+        include_when:
+          natural: [wood, grassland, heath, scrub, bare_rock, scree, wetland]
+          landuse: [forest, meadow, grass, farmland, orchard, residential, farmyard]
+        attributes:
+          - key: class
+            value: '${ feature.tags.natural != null ? feature.tags.natural : feature.tags.landuse }'
+
+  # ── Wody ──
+  - id: water
+    features:
+      - source: osm
+        geometry: polygon
+        min_zoom: 8
+        include_when:
+          natural: water
+          waterway: riverbank
+          landuse: reservoir
+        attributes:
+          - key: name
+            min_zoom: 13
+  - id: waterway
+    features:
+      - source: osm
+        geometry: line
+        min_zoom: 10
+        include_when:
+          waterway: [river, stream, canal]
+        attributes:
+          - key: class
+            tag_value: waterway
+          - key: name
+            min_zoom: 13
+
+  # ── Drogi i ścieżki ──
+  - id: transportation
+    features:
+      - source: osm
+        geometry: line
+        min_zoom: 9
+        include_when:
+          highway: [primary, secondary, tertiary]
+        attributes:
+          - key: class
+            tag_value: highway
+          - key: name
+            min_zoom: 12
+      - source: osm
+        geometry: line
+        min_zoom: 12
+        include_when:
+          highway: [unclassified, residential, service, track]
+        attributes:
+          - key: class
+            tag_value: highway
+          - key: name
+            min_zoom: 14
+      - source: osm
+        geometry: line
+        min_zoom: 13
+        include_when:
+          highway: [path, footway, bridleway, steps, cycleway]
+        attributes:
+          - key: class
+            tag_value: highway
+          - key: name
+            min_zoom: 14
+
+  # ── Budynki ──
+  - id: building
+    features:
+      - source: osm
+        geometry: polygon
+        min_zoom: 14
+        include_when:
+          building: __any__
+
+  # ── Nazwy miejscowości i szczytów, punkty dla turysty ──
+  - id: place
+    features:
+      - source: osm
+        geometry: point
+        min_zoom: 10
+        include_when:
+          place: [town, village, hamlet, locality]
+        attributes:
+          - key: class
+            tag_value: place
+          - key: name
+  - id: poi
+    features:
+      - source: osm
+        geometry: point
+        min_zoom: 11
+        include_when:
+          natural: [peak, saddle, spring]
+        attributes:
+          - key: class
+            tag_value: natural
+          - key: name
+          - key: ele
+      - source: osm
+        geometry: point
+        min_zoom: 13
+        include_when:
+          tourism: [alpine_hut, wilderness_hut, viewpoint, information]
+          amenity: [parking, shelter]
+        attributes:
+          - key: class
+            value: '${ feature.tags.tourism != null ? feature.tags.tourism : feature.tags.amenity }'
+          - key: name
+
+  # ── Granica parku (z pliku parku) ──
+  - id: park
+    features:
+      - source: granica
+        geometry: polygon
+        min_zoom: 7
+        attributes:
+          - key: class
+            value: national_park

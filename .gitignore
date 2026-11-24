@@ -6,3 +6,6 @@ dist/
 app/.svelte-kit/
 app/build/
 app/static/content/
+map/.cache/
+map/out/
+*.qix

@@ -1,4 +1,4 @@
-import { spawn } from 'node:child_process';
+import { execSync, spawn } from 'node:child_process';
 import { cpSync, createReadStream, existsSync, rmSync, statSync } from 'node:fs';
 import { extname, join, normalize, resolve } from 'node:path';
 import { sveltekit } from '@sveltejs/kit/vite';
@@ -74,7 +74,18 @@ function trailContent(): Plugin {
   };
 }
 
+function gitVersion(): string {
+  try {
+    return execSync('git rev-parse --short HEAD', { cwd: repo }).toString().trim();
+  } catch {
+    return 'dev';
+  }
+}
+
 export default defineConfig({
   plugins: [trailContent(), sveltekit()],
+  define: {
+    __APP_VERSION__: JSON.stringify(`${gitVersion()} · ${new Date().toISOString().slice(0, 10)}`),
+  },
   server: { fs: { allow: [repo] } },
 });

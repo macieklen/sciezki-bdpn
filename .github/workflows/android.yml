@@ -1,11 +1,15 @@
-# Buduje testowe APK przy każdym wysłaniu zmian. Plik do pobrania:
-# zakładka Actions → wybrany przebieg → sekcja Artifacts → "sciezki-bdpn-debug".
+# Buduje testowe APK przy każdym wysłaniu zmian. Do pobrania:
+# - na telefonie: Releases → "Wersja testowa (najnowsza)" → sciezki-bdpn.apk,
+# - albo: Actions → wybrany przebieg → Artifacts → "sciezki-bdpn-debug".
 name: Android APK
 
 on:
   push:
     branches: ['**']
   workflow_dispatch:
+
+permissions:
+  contents: write
 
 jobs:
   apk:
@@ -47,3 +51,15 @@ jobs:
           name: sciezki-bdpn-debug
           path: app/android/app/build/outputs/apk/debug/*.apk
           retention-days: 30
+
+      # Stałe wydanie "testowa" z najnowszym APK — wygodne do pobrania na telefonie.
+      - name: Wydanie testowe
+        if: github.event_name == 'workflow_dispatch' || github.ref_name == 'main' || startsWith(github.ref_name, 'etap-')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cp app/android/app/build/outputs/apk/debug/app-debug.apk sciezki-bdpn.apk
+          NOTES="Gałąź ${GITHUB_REF_NAME}, commit ${GITHUB_SHA::7}, $(date -u +'%Y-%m-%d %H:%M') UTC"
+          gh release delete testowa --yes --cleanup-tag || true
+          gh release create testowa sciezki-bdpn.apk --prerelease --target "$GITHUB_SHA" \
+            --title "Wersja testowa (najnowsza)" --notes "$NOTES"

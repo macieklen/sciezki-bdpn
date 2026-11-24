@@ -54,6 +54,7 @@
       <button onclick={() => (manifest = loadManifest())}>{t().retry}</button>
     </div>
   {/await}
+  <p class="version">Wersja {__APP_VERSION__}</p>
 </main>
 
 <style>
@@ -145,6 +146,11 @@
     align-items: center;
     padding-right: 12px;
     color: var(--taupe);
+  }
+  .version {
+    padding: 8px var(--gutter) calc(24px + var(--safe-bottom));
+    font-size: 12px;
+    color: var(--grey);
   }
   .status {
     padding: 24px var(--gutter);

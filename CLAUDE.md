@@ -16,8 +16,22 @@ programistyczne i GIS (QGIS, Python). Komunikacja po polsku, zwracamy się „Pa
   (warstwy `segments`, `entrances`, `stops`), `stops/<id>.<lang>.md`, nagrania
   `<id>.<lang>.m4a`, zdjęcia `<id>-N.jpg`. Szczegóły w README.
 - **Model ścieżki:** sieć odcinków będąca **drzewem** (bez pętli). Rozwidlenia to zwykle
-  alternatywne **wejścia**; spacer = jedna trasa między dwoma wejściami; nieliczne ślepe
-  odnogi (np. punkt widokowy) chodzi się tam i z powrotem.
+  alternatywne **wejścia**; nieliczne ślepe odnogi (np. punkt widokowy) chodzi się tam i z powrotem.
+- **Bez narzucania trasy** (decyzja z rozmowy po etapie 3, do wdrożenia): użytkownik nie
+  wybiera trasy ani celu; aplikacja reaguje na ruch. Bez szacowania czasu i bez sekcji
+  „możliwe przejścia” — tylko licznik „X z Y przystanków”. Kierunek marszu wynika z ruchu
+  wzdłuż odcinka; „przed Tobą” pokazujemy tylko przy pewnym kierunku, inaczej najbliższe
+  przystanki. Przy rozwidleniu (ok. 50 m przed węzłem) opcje gałęzi jako **etykiety
+  w mianowniku** („Przełęcz · 1,2 km · 3 przystanki”, „Jaskinia · 400 m · ślepa odnoga”) —
+  bez zdań wymagających odmiany, bez „w lewo/w prawo”; opcje nie migają (zostają do
+  potwierdzenia gałęzi). Powiadomienie o rozwidleniu przy zablokowanym ekranie **tylko gdy
+  któraś gałąź ma nieodwiedzone przystanki**. Opisy gałęzi wylicza build z nazwanych
+  **końców** (wejścia + ślepe końce z nazwami, typ `wejście`/`koniec`), z opcjonalnym
+  nadpisaniem atrybutem na pierwszym odcinku gałęzi. Ekran przystanku: sąsiedzi po ścieżce
+  w obu kierunkach zamiast poprzedni/następny. `guideDirection` zostaje tylko dla notek
+  kierunkowych (liczonych z faktycznego kierunku ruchu). Aplikacja nigdy nie generuje
+  tekstów dynamicznie (żadnych LLM w aplikacji). Działanie przy rozwidleniach do
+  zweryfikowania na prawdziwych śladach GPX.
 - **Wykrywanie przystanków:** rzut pozycji GPS na odcinki (pozycja „wzdłuż trasy”), zmiana
   odcinka dopiero za węzłem po kilku zgodnych odczytach, filtr dokładności, każdy przystanek
   powiadamia raz na spacer, przystanki z tym samym `group` = jedno powiadomienie,

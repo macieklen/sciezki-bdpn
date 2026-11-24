@@ -3,6 +3,7 @@
   import maplibregl from 'maplibre-gl';
   import { basemapUrl } from '$lib/basemap';
   import { basemapStyle } from '$lib/map-style';
+  import { formatDistance, i18n, t } from '$lib/i18n.svelte';
   import { onDestroy, onMount } from 'svelte';
   import type { TrailBundle } from '@sciezki/core';
 
@@ -17,6 +18,8 @@
     stopHref,
     stopTitle,
     follow = $bindable(true),
+    topInset = 100,
+    bottomInset = 200,
   }: {
     trail: TrailBundle;
     visited: string[];
@@ -28,6 +31,9 @@
     entranceNames: Record<string, string>;
     stopHref: (id: string) => string;
     stopTitle: (id: string) => string;
+    /** Wysokość elementów zasłaniających mapę u góry i u dołu [px] — dla znacznika na krawędzi. */
+    topInset?: number;
+    bottomInset?: number;
     follow?: boolean;
   } = $props();
 
@@ -77,6 +83,8 @@
     });
     map.touchZoomRotate.disableRotation();
     map.on('dragstart', () => (follow = false));
+    map.on('move', updateEdge);
+    map.on('resize', updateEdge);
 
     map.on('load', () => {
       map!.addSource('odcinki', { type: 'geojson', data: segmentsGeoJSON() });
@@ -169,6 +177,47 @@
     (map?.getSource('odcinki') as maplibregl.GeoJSONSource | undefined)?.setData(data);
   });
 
+  // ── Znacznik pozycji na krawędzi mapy, gdy pozycja jest poza widokiem ──
+  let edge = $state<{ x: number; y: number; angle: number; distance: number } | null>(null);
+  const EDGE_MARGIN = 38;
+
+  function updateEdge() {
+    if (!map || !position || !container) {
+      edge = null;
+      return;
+    }
+    const p = map.project(position);
+    const w = container.clientWidth;
+    const h = container.clientHeight;
+    const r = { l: EDGE_MARGIN, t: topInset + EDGE_MARGIN, r: w - EDGE_MARGIN, b: h - bottomInset - EDGE_MARGIN };
+    if (r.b <= r.t || (p.x >= r.l && p.x <= r.r && p.y >= r.t && p.y <= r.b)) {
+      edge = null;
+      return;
+    }
+    // Punkt przecięcia odcinka „środek widoku → pozycja” z krawędzią bezpiecznego prostokąta.
+    const cx = (r.l + r.r) / 2;
+    const cy = (r.t + r.b) / 2;
+    const dx = p.x - cx;
+    const dy = p.y - cy;
+    const sx = dx ? ((dx > 0 ? r.r : r.l) - cx) / dx : Infinity;
+    const sy = dy ? ((dy > 0 ? r.b : r.t) - cy) / dy : Infinity;
+    const k = Math.min(sx, sy);
+    const at = map.unproject([cx, cy]);
+    edge = {
+      x: cx + dx * k,
+      y: cy + dy * k,
+      angle: (Math.atan2(dy, dx) * 180) / Math.PI,
+      distance: at.distanceTo(new maplibregl.LngLat(position[0], position[1])),
+    };
+  }
+
+  $effect(() => {
+    void position;
+    void topInset;
+    void bottomInset;
+    updateEdge();
+  });
+
   export function centerOnMe() {
     follow = true;
     if (map && position) map.easeTo({ center: position, zoom: Math.max(map.getZoom(), 16), duration: 500 });
@@ -176,6 +225,19 @@
 </script>
 
 <div class="map" bind:this={container}></div>
+{#if edge}
+  <button
+    class="edge-marker"
+    style:left="{edge.x}px"
+    style:top="{edge.y}px"
+    aria-label="{t().centerOnMe} · {formatDistance(edge.distance, i18n.lang)}"
+    onclick={centerOnMe}
+  >
+    <span class="pointer" style:transform="rotate({edge.angle}deg)"><span class="beak"></span></span>
+    <span class="edge-dot"></span>
+    <span class="edge-label">{formatDistance(edge.distance, i18n.lang)}</span>
+  </button>
+{/if}
 
 <style>
   .map {
@@ -225,6 +287,54 @@
     background: #2f6fb0;
     border: 3px solid #fff;
     box-shadow: 0 0 0 10px rgba(47, 111, 176, 0.18), 0 1px 3px rgba(0, 0, 0, 0.3);
+  }
+  .edge-marker {
+    position: absolute;
+    z-index: 2;
+    width: 44px;
+    height: 44px;
+    margin: -22px 0 0 -22px;
+    padding: 0;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+  }
+  .pointer {
+    position: absolute;
+    inset: 0;
+  }
+  /* Dziubek po prawej stronie kółka; obrót kontenera kieruje go w stronę pozycji. */
+  .beak {
+    position: absolute;
+    right: -10px;
+    top: 50%;
+    width: 0;
+    height: 0;
+    margin-top: -9px;
+    border-left: 15px solid #2f6fb0;
+    border-top: 9px solid transparent;
+    border-bottom: 9px solid transparent;
+    filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.3));
+  }
+  .edge-dot {
+    position: absolute;
+    inset: 8px;
+    border-radius: 50%;
+    background: #2f6fb0;
+    border: 3px solid #fff;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
+  }
+  .edge-label {
+    position: absolute;
+    top: 44px;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 1px 6px;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.92);
+    color: #2f6fb0;
+    font: 700 12px/1.3 Lato, sans-serif;
+    white-space: nowrap;
   }
   .map :global(.raw) {
     width: 8px;

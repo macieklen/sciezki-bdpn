@@ -106,6 +106,9 @@
 
   // ── Widok ──
   let follow = $state(true);
+  let bottomHeight = $state(200);
+  let statusHeight = $state(70);
+  const topInset = $derived(statusHeight + 14);
   let mapRef: WalkMap | undefined = $state();
   let showList = $state(false);
   let showSim = $state(true);
@@ -130,6 +133,8 @@
   <WalkMap
     bind:this={mapRef}
     bind:follow
+    {topInset}
+    bottomInset={bottomHeight}
     {trail}
     visited={walk.visited}
     {nextStopId}
@@ -143,7 +148,7 @@
 
   <div class="triad top-stripe"><span></span></div>
 
-  <header class="status-card">
+  <header class="status-card" bind:clientHeight={statusHeight}>
     <span class="dot" class:off={walk.status !== 'on-trail'}></span>
     <div class="status-text">
       <div class="small">{t().walking} · {t().visitedOf(walk.visited.length, trail.stops.length)}</div>
@@ -165,7 +170,7 @@
     </button>
   </div>
 
-  <div class="bottom">
+  <div class="bottom" bind:clientHeight={bottomHeight}>
     {#if simulated && sim}
       <section class="sim" aria-label={t().simulator}>
         <button class="sim-toggle" onclick={() => (showSim = !showSim)} aria-expanded={showSim}>

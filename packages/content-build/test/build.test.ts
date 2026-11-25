@@ -4,6 +4,7 @@ import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { createLocalProjection, trailBundleSchema, type XY } from '@sciezki/core';
 import { buildContent } from '../src/build.ts';
+import { sampleContentDir } from './sample.ts';
 import { decodeGpkgGeometry, encodeGpkgGeometry, writeGpkg } from '../src/gpkg.ts';
 
 const repo = join(import.meta.dirname, '..', '..', '..');
@@ -18,7 +19,7 @@ describe('GeoPackage', () => {
 describe('build ścieżki przykładowej', () => {
   it('buduje się bez błędów i wyznacza trasy', async () => {
     const out = mkdtempSync(join(tmpdir(), 'sciezki-'));
-    const res = await buildContent({ contentDir: join(repo, 'content'), outDir: out });
+    const res = await buildContent({ contentDir: sampleContentDir(), outDir: out });
     expect(res.messages.filter((m) => m.level !== 'info')).toEqual([]);
     expect(res.ok).toBe(true);
     const trail = trailBundleSchema.parse(JSON.parse(readFileSync(join(out, 'trails/przyklad/trail.json'), 'utf8')));

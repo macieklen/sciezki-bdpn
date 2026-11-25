@@ -19,6 +19,7 @@ import {
   type WalkLeg,
 } from '@sciezki/core';
 import { buildContent } from '../src/build.ts';
+import { sampleContentDir } from './sample.ts';
 
 let tg: TrailGraph;
 const node = (entranceOrLeaf: string) => {
@@ -36,7 +37,7 @@ function walk(legs: WalkLeg[], _label: [string, string], seed = 1, noise = 8) {
 
 beforeAll(async () => {
   const out = mkdtempSync(join(tmpdir(), 'sciezki-tracker-'));
-  const res = await buildContent({ contentDir: join(import.meta.dirname, '../../../content'), outDir: out });
+  const res = await buildContent({ contentDir: sampleContentDir(), outDir: out });
   expect(res.ok).toBe(true);
   tg = trailGraph(trailBundleSchema.parse(JSON.parse(readFileSync(join(out, 'trails/przyklad/trail.json'), 'utf8'))));
 }, 60_000);

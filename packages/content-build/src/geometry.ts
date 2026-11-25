@@ -105,6 +105,10 @@ export function processGeometry(gpkgPath: string, source: TrailSource, r: Report
   for (const f of entL.features) {
     const id = str(f.properties.id);
     if (!id) { r.error(`Wejście (fid ${f.fid}): brak atrybutu "id".`); continue; }
+    if (!/^[a-z0-9][a-z0-9_-]*$/.test(id)) {
+      r.error(`Wejście "${id}": id może zawierać tylko małe litery bez polskich znaków, cyfry, "-" i "_" (np. "1-maja"). Nazwę z polskimi znakami wpisz w trail.yaml.`);
+      continue;
+    }
     if (f.geometry?.type !== 'Point') { r.error(`Wejście "${id}": oczekiwano punktu.`); continue; }
     const xy = proj.forward(tEnt(f.geometry.coordinates));
     const node = nearestNode(graph, xy);

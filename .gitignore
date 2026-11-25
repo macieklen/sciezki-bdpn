@@ -10,3 +10,7 @@ map/.cache/
 map/out/
 *.qix
 shots/
+# Pliki robocze SQLite/GeoPackage (QGIS przy otwartym pliku)
+*.gpkg-wal
+*.gpkg-shm
+*.gpkg-journal

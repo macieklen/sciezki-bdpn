@@ -162,6 +162,12 @@ async function buildTrail(
     if (!names[def]) r.error(`trail.yaml: wejście "${eid}" nie ma nazwy w języku domyślnym (${def}).`);
   }
 
+  if (existsSync(join(dir, 'trail.gpkg-wal'))) {
+    r.warning(
+      'Obok trail.gpkg leży trail.gpkg-wal — plik jest otwarty w QGIS albo nie został zamknięty i część zmian ' +
+        'może nie być zapisana w trail.gpkg. Zamknij projekt (lub warstwy) w QGIS przed commitem.',
+    );
+  }
   const geometry = processGeometry(join(dir, 'trail.gpkg'), source, r);
   if (!geometry) return null;
 

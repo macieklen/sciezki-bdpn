@@ -18,22 +18,19 @@ description:
 
 # Nazwy wejść i ślepych końców; klucze = atrybut "id" w warstwie "entrances".
 entrances:
-  parking:
-    pl: Parking przy leśniczówce
-    en: Forester's lodge car park
-  przelecz:
-    pl: Przełęcz
-    en: Mountain pass
-  wies:
-    pl: Wejście od strony wsi
-    en: Village entrance
-  punkt-widokowy:
-    pl: Punkt widokowy
-    en: Viewpoint
+  belska:
+    pl: Bełska
+    en: Bełska
+  1-maja:
+    pl: 1 Maja
+    en: 1 Maja
+  dom:
+    pl: Dom
+    en: Home
 
-# Kierunek, w którym napisano drukowany przewodnik.
+# Kierunek, w którym napisano teksty (opcjonalnie; od którego do którego wejścia).
 guideDirection:
-  from: parking
-  to: przelecz
+  from: belska
+  to: 1-maja
 
 defaultRadius: 40

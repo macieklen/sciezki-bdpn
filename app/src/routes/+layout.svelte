@@ -7,6 +7,7 @@
   import { goto } from '$app/navigation';
   import { i18n } from '$lib/i18n.svelte';
   import { onNotificationTap } from '$lib/notify';
+  import { registerBackButton } from '$lib/back';
 
   let { children } = $props();
 
@@ -16,6 +17,8 @@
 
   // Dotknięcie powiadomienia o przystanku otwiera jego ekran.
   onNotificationTap((url) => goto(url));
+  // Systemowy „wstecz” w Androidzie: przystanek → ścieżka → przegląd.
+  registerBackButton();
 </script>
 
 {@render children()}

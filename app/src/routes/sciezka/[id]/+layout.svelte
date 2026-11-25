@@ -80,7 +80,11 @@
     const id = selectedStopId;
     const dragging = nav.sheetDragging;
     void nav.sheetHeight;
-    if (!id || !mapRef) {
+    if (!mapRef) return;
+    if (!id) {
+      // Ekran ścieżki: cała ścieżka w pasie mapy nad arkuszem (po powrocie z przystanku
+      // i po puszczeniu uchwytu arkusza).
+      if (!dragging) mapRef.fitTrail();
       lastStop = null;
       return;
     }
@@ -89,9 +93,10 @@
     mapRef.focusStop(id, dragging ? 0 : isNew ? 500 : 280, isNew);
   });
 
-  let headerEl: HTMLElement | undefined = $state();
-  let headerH = $state(60);
-  const topInset = $derived(headerEl ? headerEl.offsetTop + headerH : 100);
+  // Bez górnego paska: nad mapą tylko okrągłe przyciski (wstecz, pozycja).
+  let backEl: HTMLElement | undefined = $state();
+  let backH = $state(48);
+  const topInset = $derived(backEl ? backEl.offsetTop + backH : 70);
 </script>
 
 <svelte:head><title>{tx ? `${tx.trail.name} · BdPN` : 'BdPN'}</title></svelte:head>
@@ -115,12 +120,11 @@
   />
 
   <div class="triad top-stripe"><span></span></div>
-  <header class="bar" bind:this={headerEl} bind:clientHeight={headerH}>
-    <a class="icon-btn" href="{base}/" aria-label={t().backToOverview}><Icon name="back" strokeWidth={2} /></a>
-    <div class="name">{tx?.trail.name ?? ''}</div>
-  </header>
+  <a class="fab back" href="{base}/" aria-label={t().backToOverview} bind:this={backEl} bind:clientHeight={backH}>
+    <Icon name="back" strokeWidth={2} />
+  </a>
 
-  <div class="fabs" style:top="{topInset + 12}px">
+  <div class="fabs">
     <button class="fab" aria-label={t().centerOnMe} aria-pressed={follow} disabled={!position} onclick={() => mapRef?.centerOnMe()}>
       <svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
         ><circle cx="12" cy="12" r="4" /><path d="M12 2v3M12 19v3M2 12h3M19 12h3" /></svg
@@ -144,41 +148,15 @@
     height: 6px;
     z-index: 3;
   }
-  .bar {
+  .back {
     position: absolute;
     top: calc(14px + var(--safe-top));
     left: 12px;
-    right: 12px;
     z-index: 3;
-    background: var(--surface);
-    border-radius: var(--radius);
-    padding: 6px 14px 6px 6px;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    box-shadow: 0 2px 8px rgba(46, 43, 40, 0.15);
-  }
-  .icon-btn {
-    width: 44px;
-    height: 44px;
-    flex-shrink: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: var(--brown);
-  }
-  .name {
-    flex: 1;
-    min-width: 0;
-    font-size: 17px;
-    font-weight: 700;
-    color: var(--brown);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
   }
   .fabs {
     position: absolute;
+    top: calc(14px + var(--safe-top));
     right: 12px;
     z-index: 3;
   }

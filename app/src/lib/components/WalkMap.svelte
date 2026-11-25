@@ -191,7 +191,7 @@
   });
 
   // Przy dużym oddaleniu przystanki i etykiety zlewają się — chowamy je, zostaje linia ścieżki.
-  const FAR_ZOOM = 12.5;
+  const FAR_ZOOM = 11;
   let far = $state(false);
 
   // ── Znacznik pozycji na krawędzi mapy, gdy pozycja jest poza widokiem ──
@@ -243,16 +243,21 @@
     if (!map || !stop) return;
     follow = false;
     const padding = { top: topInset, bottom: bottomInset, left: 0, right: 0 };
-    const zoom = zoomIn ? Math.max(map.getZoom(), 16) : map.getZoom();
+    // Docelowe przybliżenie z otwarcia przystanku obowiązuje, dopóki trwa animacja —
+    // kolejne wywołania (zmiana wysokości arkusza) nie mogą jej przerwać w pół drogi.
+    if (zoomIn) stopZoom = Math.max(map.getZoom(), 16);
+    const zoom = zoomIn || map.isMoving() ? (stopZoom ?? map.getZoom()) : map.getZoom();
     if (duration === 0) map.jumpTo({ center: stop.coord, zoom, padding });
     else map.easeTo({ center: stop.coord, zoom, padding, duration });
   }
+
+  let stopZoom: number | null = null;
 
   /** Cała ścieżka w widocznej części mapy. */
   export function fitTrail() {
     if (!map) return;
     const [w, s, e, n] = trail.bbox;
-    map.fitBounds([w, s, e, n], { padding: { top: topInset + 36, bottom: bottomInset + 24, left: 32, right: 84 }, duration: 500 });
+    map.fitBounds([w, s, e, n], { padding: { top: topInset + 16, bottom: bottomInset + 16, left: 24, right: 24 }, duration: 500 });
   }
 
   export function centerOnMe() {

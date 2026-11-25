@@ -31,7 +31,7 @@
   const walking = $derived(walk.active && walk.isFor(trail.id));
   const stopsById = $derived(new Map(trail.stops.map((s) => [s.id, s])));
 
-  let sheet = $state<SheetState>('peek');
+  let sheet = $state<SheetState>('open');
 
   function startWalk() {
     if (simulated) return startSim();
@@ -97,9 +97,10 @@
       .join(' · ');
 </script>
 
-<Sheet bind:pos={sheet} dark label={t().walking} onheight={(h, d) => ((nav.sheetHeight = h), (nav.sheetDragging = d))}>
+<Sheet bind:pos={sheet} dark defaultRatio={2 / 3} label={tx?.trail.name ?? t().walking} onheight={(h, d) => ((nav.sheetHeight = h), (nav.sheetDragging = d))}>
   {#snippet header()}
     <div class="head">
+      <h1>{tx?.trail.name ?? ''}</h1>
       {#if !walking}
         <button class="start" onclick={startWalk}>
           <Icon name="walk" size={22} strokeWidth={2} />
@@ -154,14 +155,12 @@
           {/if}
         {/if}
       {/if}
-      <button class="list-toggle" onclick={() => (sheet = sheet === 'peek' ? 'open' : 'peek')}>
-        <Icon name="down" size={18} strokeWidth={2} />
-        {t().allStops}
-      </button>
     </div>
   {/snippet}
 
   <div class="body">
+    {#if tx?.trail.summary && !walking}<p class="summary">{tx.trail.summary}</p>{/if}
+    <h2 class="list-title">{t().stopsHeading}</h2>
     {#if simulated}
       <section class="sim" aria-label={t().simulator}>
         <div class="sim-row">
@@ -323,19 +322,25 @@
     font-size: 14px;
     color: #e6e2da;
   }
-  .list-toggle {
-    min-height: 44px;
-    border: none;
-    border-top: 1px solid rgba(255, 255, 255, 0.18);
-    background: transparent;
+  h1 {
+    font-size: 24px;
+    font-weight: 300;
+    line-height: 1.15;
+    color: #fff;
+  }
+  .summary {
+    margin: 0 0 8px;
+    font-size: 16px;
+    line-height: 1.5;
     color: #e6e2da;
-    font-size: 15px;
+  }
+  .list-title {
+    margin: 12px 0 0;
+    font-size: 13px;
     font-weight: 700;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    cursor: pointer;
+    color: #e6e2da;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
   }
   .body {
     padding: 0 var(--gutter) 24px;

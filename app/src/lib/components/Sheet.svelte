@@ -26,9 +26,10 @@
     onheight,
     label,
     scrollKey,
+    defaultRatio = 0.55,
   }: {
     pos?: SheetState;
-    /** Wysokość otwartego arkusza [px]; null = domyślnie ok. 55% okna. */
+    /** Wysokość otwartego arkusza [px]; null = `defaultRatio` okna. */
     openHeight?: number | null;
     dark?: boolean;
     header: Snippet;
@@ -40,6 +41,8 @@
     label: string;
     /** Klucz treści (np. id przystanku): nowa treść otwiera się od początku, powrót przywraca miejsce czytania. */
     scrollKey?: string;
+    /** Domyślna wysokość otwartego arkusza jako ułamek okna (zanim użytkownik ją zmieni). */
+    defaultRatio?: number;
   } = $props();
 
   let viewport = $state(800);
@@ -56,7 +59,7 @@
   const minOpen = $derived(Math.min(maxH, peekH + 80));
   // Otwarty arkusz: wybrana wysokość, ale nie wyższy niż treść i nie wyższy niż ekran.
   const contentFull = $derived(peekH + contentH);
-  const openH = $derived(Math.max(minOpen, Math.min(maxH, contentFull, openHeight ?? viewport * 0.55)));
+  const openH = $derived(Math.max(minOpen, Math.min(maxH, contentFull, openHeight ?? viewport * defaultRatio)));
   const target = $derived(pos === 'open' && children ? openH : peekH);
   const height = $derived(dragOffset === null ? target : Math.max(peekH, Math.min(Math.min(maxH, contentFull), target - dragOffset)));
 

@@ -32,9 +32,13 @@ programistyczne i GIS (QGIS, Python). Komunikacja po polsku, zwracamy się „Pa
   kierunkowych (liczonych z faktycznego kierunku ruchu). Aplikacja nigdy nie generuje
   tekstów dynamicznie (żadnych LLM w aplikacji). Działanie przy rozwidleniach do
   zweryfikowania na prawdziwych śladach GPX.
-- **Przegląd i nawigacja** (gałąź `eksperyment-arkusz`): ekran startowy = mapa wszystkich ścieżek
-  z etykietami nazw (bez przystanków i pozycji), dotknięcie → arkusz z krótkim opisem (`summary`
-  w trail.yaml) i „Otwórz ścieżkę”. Nawigacja = mapa przez cały czas + arkusze od dołu: ciemny
+- **Przegląd i nawigacja** (gałęzie `eksperyment-arkusz` → `eksperyment-nawigacja`): ekran startowy
+  = mapa wszystkich ścieżek z etykietami nazw (bez przystanków i pozycji); dotknięcie ścieżki
+  przybliża mapę i od razu otwiera jej nawigację (bez osobnego ekranu opisu — decyzja właściciela).
+  Ekran ścieżki: mapa w górnej 1/3, arkusz na 2/3 z nazwą ścieżki, „Rozpocznij spacer”, krótkim
+  opisem (`summary`) i listą przystanków; bez górnego paska z nazwą (miejsce w cenie) — nad mapą
+  tylko okrągłe przyciski „wstecz” i „pozycja”. Systemowy „wstecz” w Androidzie (`lib/back.ts`,
+  @capacitor/app): przystanek → ścieżka → przegląd → minimalizacja. Nawigacja = mapa przez cały czas + arkusze od dołu: ciemny
   arkusz spaceru oraz arkusz przystanku w dwóch położeniach: „nisko” (tytuł, nagranie) i otwarty
   z pełną, przewijaną treścią (`components/Sheet.svelte`). Wysokość otwartego arkusza ustawia
   użytkownik, przeciągając uchwyt — bez stałych pozycji, zapamiętywana dla kolejnych przystanków;

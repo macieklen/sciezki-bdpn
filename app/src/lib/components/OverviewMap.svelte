@@ -16,6 +16,7 @@
     bounds,
     topInset = 100,
     bottomInset = 140,
+    onopen,
   }: {
     trails: Trail[];
     names: Record<string, string>;
@@ -23,6 +24,8 @@
     bounds: [number, number, number, number];
     topInset?: number;
     bottomInset?: number;
+    /** Po przybliżeniu do wybranej ścieżki — przejście do jej nawigacji. */
+    onopen?: (id: string) => void;
   } = $props();
 
   let container: HTMLDivElement;
@@ -68,9 +71,6 @@
         const id = e.features?.[0]?.properties?.id as string | undefined;
         if (id) select(id);
       });
-      map!.on('click', (e) => {
-        if (!map!.queryRenderedFeatures(e.point, { layers: ['trasy-dotyk'] }).length) selected = null;
-      });
     });
     for (const tr of trails) {
       const b = document.createElement('button');
@@ -89,13 +89,14 @@
     map?.remove();
   });
 
+  /** Wybór ścieżki: wyróżnienie, płynne przybliżenie, potem przejście do nawigacji. */
   function select(id: string) {
     selected = id;
     const tr = trails.find((x) => x.id === id);
-    if (tr && map) {
-      const [w, s, e, n] = tr.bbox;
-      map.fitBounds([w, s, e, n], { padding: { top: topInset + 40, bottom: bottomInset + 40, left: 40, right: 40 }, maxZoom: 15, duration: 600 });
-    }
+    if (!tr || !map) return;
+    const [w, s, e, n] = tr.bbox;
+    map.once('moveend', () => onopen?.(id));
+    map.fitBounds([w, s, e, n], { padding: { top: topInset + 40, bottom: bottomInset + 40, left: 40, right: 40 }, maxZoom: 15, duration: 700 });
   }
 
   $effect(() => {

@@ -97,7 +97,7 @@
       .join(' · ');
 </script>
 
-<Sheet bind:pos={sheet} dark label={t().walking} onheight={(h) => (nav.sheetHeight = h)}>
+<Sheet bind:pos={sheet} dark label={t().walking} onheight={(h, d) => ((nav.sheetHeight = h), (nav.sheetDragging = d))}>
   {#snippet header()}
     <div class="head">
       {#if !walking}

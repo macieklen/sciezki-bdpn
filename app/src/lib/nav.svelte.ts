@@ -10,6 +10,8 @@ import { NativeLocation, WebLocation, isNative, type LocationSource } from './lo
 class NavState {
   /** Wysokość widocznego arkusza [px] — mapa omija ją przy kadrowaniu. */
   sheetHeight = $state(200);
+  /** Czy użytkownik właśnie przeciąga arkusz (mapa podąża wtedy bez animacji). */
+  sheetDragging = $state(false);
   /** Wysokość otwartego arkusza przystanku wybrana przez użytkownika — wspólna dla kolejnych przystanków. */
   stopOpenHeight = $state<number | null>(null);
   /** Położenie, w jakim ma się otworzyć następny arkusz przystanku (np. „peek” po dotarciu). */

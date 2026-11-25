@@ -73,13 +73,20 @@
   // Wybrany przystanek pokazujemy nad arkuszem.
   let mapRef: WalkMap | undefined = $state();
   let follow = $state(false);
-  // …także po zmianie wysokości arkusza (nisko → pół ekranu), z opóźnieniem na animację.
-  let focusTimer: ReturnType<typeof setTimeout> | undefined;
+  // …i trzymamy go na środku przy każdej zmianie wysokości arkusza: w trakcie przeciągania
+  // w każdej klatce, przy przełączeniu położeń — płynnie, razem z animacją arkusza (~0,3 s).
+  let lastStop: string | null = null;
   $effect(() => {
     const id = selectedStopId;
+    const dragging = nav.sheetDragging;
     void nav.sheetHeight;
-    clearTimeout(focusTimer);
-    if (id && mapRef) focusTimer = setTimeout(() => mapRef?.focusStop(id), 320);
+    if (!id || !mapRef) {
+      lastStop = null;
+      return;
+    }
+    const isNew = id !== lastStop;
+    lastStop = id;
+    mapRef.focusStop(id, dragging ? 0 : isNew ? 500 : 280, isNew);
   });
 
   let headerEl: HTMLElement | undefined = $state();

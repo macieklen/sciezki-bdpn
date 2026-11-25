@@ -38,7 +38,9 @@ programistyczne i GIS (QGIS, Python). Komunikacja po polsku, zwracamy się „Pa
   arkusz spaceru oraz arkusz przystanku w dwóch położeniach: „nisko” (tytuł, nagranie) i otwarty
   z pełną, przewijaną treścią (`components/Sheet.svelte`). Wysokość otwartego arkusza ustawia
   użytkownik, przeciągając uchwyt — bez stałych pozycji, zapamiętywana dla kolejnych przystanków;
-  nad arkuszem zawsze zostaje pas mapy, a mapa centruje się na przystanku w widocznej części.
+  nad arkuszem zawsze zostaje pas mapy, a mapa centruje się na przystanku w widocznej części
+  przez cały czas (także w trakcie przeciągania). Nowy przystanek otwiera się od początku opisu,
+  powrót do już otwieranego przywraca miejsce czytania (do zamknięcia aplikacji).
   Szybki ruch w dół zwija do „nisko”. Bez gradientu i „Czytaj dalej” (decyzja właściciela:
   osobne „pół ekranu” i „cały ekran” to zbędne mnożenie bytów). Po dotarciu arkusz przystanku
   sam wysuwa się „nisko”.

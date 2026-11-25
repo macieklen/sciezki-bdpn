@@ -94,6 +94,8 @@
     map.on('resize', updateEdge);
 
     map.on('load', () => {
+      // Otwarty przystanek (np. z powiadomienia): od razu na środku widocznej części mapy.
+      if (selectedStopId) focusStop(selectedStopId, 0, true);
       map!.addSource('odcinki', { type: 'geojson', data: segmentsGeoJSON() });
       map!.addLayer({
         id: 'odcinki-obrys',
@@ -232,17 +234,18 @@
     updateEdge();
   });
 
-  /** Pokaż przystanek w widocznej części mapy (nad arkuszem). */
-  export function focusStop(id: string) {
+  /**
+   * Pokaż przystanek na środku widocznej części mapy (nad arkuszem).
+   * `duration` 0 — natychmiast (w trakcie przeciągania arkusza, w każdej klatce).
+   */
+  export function focusStop(id: string, duration = 300, zoomIn = false) {
     const stop = trail.stops.find((x) => x.id === id);
     if (!map || !stop) return;
     follow = false;
-    map.easeTo({
-      center: stop.coord,
-      zoom: Math.max(map.getZoom(), 16),
-      padding: { top: topInset, bottom: bottomInset, left: 0, right: 0 },
-      duration: 500,
-    });
+    const padding = { top: topInset, bottom: bottomInset, left: 0, right: 0 };
+    const zoom = zoomIn ? Math.max(map.getZoom(), 16) : map.getZoom();
+    if (duration === 0) map.jumpTo({ center: stop.coord, zoom, padding });
+    else map.easeTo({ center: stop.coord, zoom, padding, duration });
   }
 
   /** Cała ścieżka w widocznej części mapy. */

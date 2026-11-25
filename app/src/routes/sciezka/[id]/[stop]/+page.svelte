@@ -62,7 +62,7 @@
 
 <svelte:head><title>{text ? `${text.title} · ${tx?.trail.name}` : 'BdPN'}</title></svelte:head>
 
-<Sheet bind:pos={sheet} bind:openHeight={nav.stopOpenHeight} label={text?.title ?? stop.id} onheight={(h) => (nav.sheetHeight = h)}>
+<Sheet bind:pos={sheet} bind:openHeight={nav.stopOpenHeight} scrollKey={`${trail.id}/${stop.id}`} label={text?.title ?? stop.id} onheight={(h, d) => ((nav.sheetHeight = h), (nav.sheetDragging = d))}>
   {#snippet above()}
     {#if walking}
       <a class="walk-line" href={closeHref}>

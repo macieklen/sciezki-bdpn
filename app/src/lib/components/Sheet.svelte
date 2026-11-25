@@ -8,6 +8,8 @@
 -->
 <script lang="ts" module>
   export type SheetState = 'peek' | 'open';
+  /** Zapamiętane miejsca czytania (klucz treści → przewinięcie). */
+  const readingPositions = new Map<string, number>();
 </script>
 
 <script lang="ts">
@@ -23,6 +25,7 @@
     above,
     onheight,
     label,
+    scrollKey,
   }: {
     pos?: SheetState;
     /** Wysokość otwartego arkusza [px]; null = domyślnie ok. 55% okna. */
@@ -32,9 +35,11 @@
     children?: Snippet;
     /** Pasek nad arkuszem (np. zwinięta linia spaceru). */
     above?: Snippet;
-    /** Wysokość widocznej części arkusza [px] — mapa omija ją przy kadrowaniu. */
-    onheight?: (h: number) => void;
+    /** Wysokość widocznej części arkusza [px] i czy trwa przeciąganie — mapa omija arkusz przy kadrowaniu. */
+    onheight?: (h: number, dragging: boolean) => void;
     label: string;
+    /** Klucz treści (np. id przystanku): nowa treść otwiera się od początku, powrót przywraca miejsce czytania. */
+    scrollKey?: string;
   } = $props();
 
   let viewport = $state(800);
@@ -56,8 +61,21 @@
   const height = $derived(dragOffset === null ? target : Math.max(peekH, Math.min(Math.min(maxH, contentFull), target - dragOffset)));
 
   $effect(() => {
-    onheight?.(Math.round(height + aboveH));
+    onheight?.(Math.round(height + aboveH), dragOffset !== null);
   });
+
+  // ── Miejsce czytania: osobno dla każdej treści (do zamknięcia aplikacji) ──
+  let contentEl: HTMLElement | undefined = $state();
+  let restoredKey: string | undefined;
+  $effect(() => {
+    const key = scrollKey;
+    if (!contentEl || key === restoredKey || contentH === 0) return;
+    restoredKey = key;
+    contentEl.scrollTop = key ? (readingPositions.get(key) ?? 0) : 0;
+  });
+  function onScroll() {
+    if (scrollKey && restoredKey === scrollKey && contentEl) readingPositions.set(scrollKey, contentEl.scrollTop);
+  }
 
   // ── Przeciąganie uchwytu / nagłówka ──
   let startY = 0;
@@ -116,7 +134,7 @@
       <div bind:clientHeight={headerH}>{@render header()}</div>
     </div>
     {#if children}
-      <div class="content">
+      <div class="content" bind:this={contentEl} onscroll={onScroll}>
         <div bind:clientHeight={contentH}>{@render children()}</div>
       </div>
     {/if}

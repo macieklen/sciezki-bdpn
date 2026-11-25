@@ -5,11 +5,15 @@ import { createHash } from 'node:crypto';
 import { existsSync } from 'node:fs';
 import { mkdir, readdir, readFile, rm, stat, writeFile } from 'node:fs/promises';
 import { extname, join, relative, sep } from 'node:path';
-import { marked } from 'marked';
+import { Marked } from 'marked';
 import { parse as parseYaml } from 'yaml';
 import type { z, ZodTypeAny } from 'zod';
 import {
   SCHEMA_VERSION,
+  createLocalProjection,
+  projectOnPolyline,
+  simplifyLine,
+  type XY,
   contentConfigSchema,
   manifestSchema,
   stopFrontmatterSchema,
@@ -24,7 +28,7 @@ import {
 } from '@sciezki/core';
 import { processGeometry } from './geometry.ts';
 import { buildMaps } from './maps.ts';
-import { AUDIO_EXTENSIONS, IMAGE_EXTENSIONS, checkFfmpeg, fileHash, processAudio, processImage } from './media.ts';
+import { AUDIO_EXTENSIONS, IMAGE_EXTENSIONS, checkFfmpeg, fileHash, processAudio, processImage, type ProcessedImage } from './media.ts';
 import { Reporter, type Message } from './report.ts';
 
 export interface BuildOptions {
@@ -62,7 +66,35 @@ export function splitFrontmatter(text: string): { data: unknown; body: string } 
   return { data: parseYaml(m[1]!) ?? {}, body: m[2]! };
 }
 
-const renderMd = (md: string) => (marked.parse(md, { async: false }) as string).trim();
+const escapeAttr = (v: string) => v.replaceAll('&', '&amp;').replaceAll('"', '&quot;').replaceAll('<', '&lt;');
+
+/**
+ * Markdown → HTML. Zdjęcia przystanku (`![podpis](07-1.jpg)`) stają się <figure> z wariantami
+ * rozmiarów; adresy są względne wobec katalogu ścieżki (`data-rel-*`), aplikacja uzupełnia je
+ * przy wyświetlaniu.
+ */
+function renderMd(md: string, images: Map<string, ProcessedImage> = new Map(), onImage?: (src: string, found: boolean) => void): string {
+  const m = new Marked({
+    renderer: {
+      image({ href, text }) {
+        const img = images.get(href);
+        onImage?.(href, !!img);
+        if (!img) return escapeAttr(text);
+        const variants = Object.entries(img.variants).sort((a, b) => +a[0] - +b[0]);
+        const srcset = variants.map(([w, rel]) => `${rel} ${w}w`).join(', ');
+        const alt = escapeAttr(text);
+        return (
+          `<figure><img data-rel-src="${variants[0]![1]}" data-rel-srcset="${srcset}" width="${img.width}" height="${img.height}" alt="${alt}" loading="lazy">` +
+          (text ? `<figcaption>${alt}</figcaption>` : '') +
+          '</figure>'
+        );
+      },
+    },
+  });
+  const html = (m.parse(md, { async: false }) as string).trim();
+  // Zdjęcie w osobnym akapicie: <p><figure>…</figure></p> → <figure>…</figure>.
+  return html.replace(/<p>\s*(<figure>[\s\S]*?<\/figure>)\s*<\/p>/g, '$1');
+}
 
 export async function buildContent({ contentDir, outDir }: BuildOptions): Promise<BuildResult> {
   const root = new Reporter('content');
@@ -168,6 +200,7 @@ async function buildTrail(
       trail: {
         name: source.name[lang] ?? source.name[def] ?? id,
         subtitle: source.subtitle?.[lang] ?? source.subtitle?.[def],
+        summary: source.summary?.[lang] ?? source.summary?.[def],
         descriptionHtml: (source.description?.[lang] ?? source.description?.[def]) ? renderMd(source.description?.[lang] ?? source.description![def]!) : undefined,
       },
       entrances: Object.fromEntries(Object.entries(source.entrances).map(([eid, n]) => [eid, n[lang] ?? n[def] ?? eid])),
@@ -188,6 +221,7 @@ async function buildTrail(
       }
     }
     if (images.length === 0) sr.info('Brak zdjęć.');
+    const imagesBySource = new Map(images.map((i) => [i.source, i]));
     bundle.stops.push({ ...stop, images });
 
     let defaultText: TrailTexts['stops'][string] | null = null;
@@ -221,9 +255,15 @@ async function buildTrail(
         if (!imageFiles.includes(key)) sr.warning(`${stop.id}.${lang}.md: podpis dla nieistniejącego zdjęcia "${key}".`);
       }
       if (!parsed.body.trim()) sr.warning(`${stop.id}.${lang}.md: pusty tekst.`);
+      const inline: string[] = [];
+      const html = renderMd(parsed.body, imagesBySource, (src, found) => {
+        if (found) inline.push(src);
+        else sr.warning(`${stop.id}.${lang}.md: zdjęcie "${src}" nie istnieje (oczekiwano np. ${stop.id}-1.jpg).`);
+      });
       const text = {
         title: fm.title,
-        html: renderMd(parsed.body),
+        html,
+        inlineImages: inline,
         oppositeNote: fm.oppositeNote,
         captions: fm.captions ?? {},
         audio: audio ?? undefined,
@@ -285,10 +325,29 @@ async function buildTrail(
     name: Object.fromEntries(languages.map((l) => [l, texts[l]!.trail.name])),
     length: bundle.length,
     stopCount: bundle.stops.length,
+    overview: overviewGeometry(bundle),
     cover: bundle.cover ? relative(outRoot, join(out, smallest(bundle.cover.variants))).split(sep).join('/') : undefined,
     bbox: bundle.bbox,
     files: manifestFiles,
   };
+}
+
+/** Uproszczone linie (tolerancja 5 m) i punkt etykiety: punkt sieci najbliższy środkowi ścieżki. */
+function overviewGeometry(bundle: TrailBundle): Manifest['trails'][number]['overview'] {
+  const proj = createLocalProjection(bundle.origin);
+  const r6 = (n: number) => Math.round(n * 1e6) / 1e6;
+  const lines = bundle.segments.map((s) => s.coords.map((c) => proj.forward(c)));
+  const centre = proj.forward([(bundle.bbox[0] + bundle.bbox[2]) / 2, (bundle.bbox[1] + bundle.bbox[3]) / 2]);
+  let best = { offset: Infinity, point: lines[0]![0]! };
+  for (const l of lines) {
+    const p = projectOnPolyline(centre, l);
+    if (p.offset < best.offset) best = p;
+  }
+  const ll = (p: XY): [number, number] => {
+    const [lon, lat] = proj.inverse(p);
+    return [r6(lon), r6(lat)];
+  };
+  return { lines: lines.map((l) => simplifyLine(l, 5).map(ll)), label: ll(best.point) };
 }
 
 /** Najmniejszy wariant zdjęcia. */

@@ -97,15 +97,15 @@ export class NativeLocation implements LocationSource {
   private watcherId: string | null = null;
   private stopped = false;
 
-  constructor(private readonly backgroundMessage: string, private readonly backgroundTitle: string) {}
+  /** `backgroundMessage` = null: tylko na pierwszym planie (bez usługi w tle i jej powiadomienia). */
+  constructor(private readonly backgroundMessage: string | null, private readonly backgroundTitle: string) {}
 
   start(onFix: (fix: Fix) => void, onError: (message: string) => void) {
     this.stopped = false;
     BackgroundGeolocation.addWatcher(
       {
         // Podanie komunikatu włącza pracę w tle (Android: usługa pierwszoplanowa ze stałym powiadomieniem).
-        backgroundMessage: this.backgroundMessage,
-        backgroundTitle: this.backgroundTitle,
+        ...(this.backgroundMessage ? { backgroundMessage: this.backgroundMessage, backgroundTitle: this.backgroundTitle } : {}),
         requestPermissions: true,
         stale: false,
         distanceFilter: 5,

@@ -5,6 +5,9 @@ name:
 subtitle:
   pl: Ścieżka przyrodnicza
   en: Nature trail
+summary:
+  pl: Krótka pętla przez buczynę do źródlisk i punktu widokowego, z trzech wejść. (Opis przykładowy.)
+  en: A short walk through beech forest to the springs and a viewpoint, from three entrances. (Sample text.)
 description:
   pl: |
     Fikcyjna ścieżka do testów aplikacji: trzy wejścia, rozwidlenia,

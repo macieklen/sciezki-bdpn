@@ -146,6 +146,9 @@ name:
 subtitle:
   pl: Ścieżka przyrodnicza
   en: Nature trail
+summary:
+  pl: Krótka pętla przez buczynę do źródlisk i punktu widokowego, z trzech wejść. (Opis przykładowy.)
+  en: A short walk through beech forest to the springs and a viewpoint, from three entrances. (Sample text.)
 description:
   pl: |
     Fikcyjna ścieżka do testów aplikacji: trzy wejścia, rozwidlenia,
@@ -184,11 +187,11 @@ for (const s of stops) {
     const t = s[lang];
     const fm = [`title: ${JSON.stringify(t.title)}`];
     if ('oppositeNote' in t && t.oppositeNote) fm.push(`oppositeNote: ${JSON.stringify(t.oppositeNote)}`);
-    if (lang === 'pl' && s.images > 0) {
-      fm.push('captions:');
-      for (let i = 1; i <= s.images; i++) fm.push(`  ${s.id}-${i}.jpg: ${JSON.stringify(`${t.title} — zdjęcie ${i} (plansza zastępcza)`)}`);
-    }
-    writeFileSync(join(stopsDir, `${s.id}.${lang}.md`), `---\n${fm.join('\n')}\n---\n\n${t.body}\n`);
+    // Zdjęcia wstawione w tekst, jak w publikacji: po pierwszym akapicie (i drugie na końcu).
+    const [first, ...rest] = t.body.split('\n\n');
+    const photo = (n: number) => `![${t.title}${lang === 'pl' ? ' — zdjęcie' : ' — photo'} ${n}](${s.id}-${n}.jpg)`;
+    const parts = [first!, ...(s.images >= 1 ? [photo(1)] : []), ...rest, ...(s.images >= 2 ? [photo(2)] : [])];
+    writeFileSync(join(stopsDir, `${s.id}.${lang}.md`), `---\n${fm.join('\n')}\n---\n\n${parts.join('\n\n')}\n`);
   }
 }
 

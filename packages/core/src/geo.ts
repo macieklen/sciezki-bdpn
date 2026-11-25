@@ -101,3 +101,23 @@ export function pointAlong(line: XY[], along: number): XY {
   }
   return line[line.length - 1]!;
 }
+
+/** Uproszczenie łamanej (Douglas–Peucker) z tolerancją w metrach. */
+export function simplifyLine(line: XY[], tolerance: number): XY[] {
+  if (line.length <= 2) return line.slice();
+  let maxD = 0;
+  let index = 0;
+  const a = line[0]!;
+  const b = line[line.length - 1]!;
+  for (let i = 1; i < line.length - 1; i++) {
+    const d = projectOnPolyline(line[i]!, [a, b]).offset;
+    if (d > maxD) {
+      maxD = d;
+      index = i;
+    }
+  }
+  if (maxD <= tolerance) return [a, b];
+  const left = simplifyLine(line.slice(0, index + 1), tolerance);
+  const right = simplifyLine(line.slice(index), tolerance);
+  return [...left.slice(0, -1), ...right];
+}

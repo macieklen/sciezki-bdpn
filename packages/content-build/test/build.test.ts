@@ -29,6 +29,14 @@ describe('build ścieżki przykładowej', () => {
     const files = res.manifest!.trails[0]!.files;
     expect(files.some((f) => f.lang === 'en' && f.path.endsWith('.m4a'))).toBe(true);
     expect(files.find((f) => f.path.endsWith('trail.json'))?.lang).toBeNull();
+    // Zdjęcia w tekście i dane do przeglądu.
+    const texts = JSON.parse(readFileSync(join(out, 'trails/przyklad/texts.pl.json'), 'utf8'));
+    expect(texts.stops['01'].inlineImages).toEqual(['01-1.jpg', '01-2.jpg']);
+    expect(texts.stops['01'].html).toContain('<figure><img data-rel-src="media/img/01-1-');
+    expect(texts.stops['01'].html).not.toContain('<p><figure>');
+    expect(texts.trail.summary).toBeTruthy();
+    const overview = res.manifest!.trails[0]!.overview;
+    expect(overview.lines).toHaveLength(5);
   });
 });
 

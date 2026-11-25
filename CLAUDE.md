@@ -32,6 +32,16 @@ programistyczne i GIS (QGIS, Python). Komunikacja po polsku, zwracamy się „Pa
   kierunkowych (liczonych z faktycznego kierunku ruchu). Aplikacja nigdy nie generuje
   tekstów dynamicznie (żadnych LLM w aplikacji). Działanie przy rozwidleniach do
   zweryfikowania na prawdziwych śladach GPX.
+- **Przegląd i nawigacja** (gałąź `eksperyment-arkusz`): ekran startowy = mapa wszystkich ścieżek
+  z etykietami nazw (bez przystanków i pozycji), dotknięcie → arkusz z krótkim opisem (`summary`
+  w trail.yaml) i „Otwórz ścieżkę”. Nawigacja = mapa przez cały czas + arkusze od dołu: ciemny
+  arkusz spaceru oraz arkusz przystanku w położeniach nisko / pół ekranu / cały ekran
+  (`components/Sheet.svelte`; ruch w górę w treści rozwija, gradient + „Czytaj dalej”; krótki
+  tekst bez trybu pełnoekranowego). Po dotarciu arkusz przystanku sam wysuwa się „nisko”.
+  Śledzenie w tle dopiero po „Rozpocznij spacer” (wcześniej tylko podgląd pozycji przy otwartej
+  aplikacji). Zdjęcia w tekście przystanku: `![podpis](07-1.jpg)` w Markdownie; niewstawione
+  dokładane na końcu. Odtwarzacz: przycisk 44 px ciemnoszary `#4E4C4D` z białym znakiem,
+  pasek postępu w tym samym kolorze.
 - **Wykrywanie przystanków:** rzut pozycji GPS na odcinki (pozycja „wzdłuż trasy”), zmiana
   odcinka dopiero za węzłem po kilku zgodnych odczytach, filtr dokładności, każdy przystanek
   powiadamia raz na spacer, przystanki z tym samym `group` = jedno powiadomienie,

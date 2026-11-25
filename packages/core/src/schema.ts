@@ -46,6 +46,8 @@ export type ValidationSettings = z.infer<typeof validationSettingsSchema>;
 export const trailSourceSchema = z.object({
   name: localized,
   subtitle: localized.optional(),
+  /** Krótki opis (1–2 zdania) do przeglądu ścieżek. */
+  summary: localized.optional(),
   /** Opis w Markdownie. */
   description: localized.optional(),
   /** Nazwy wejść i nazwanych ślepych końców, kluczowane atrybutem `id` z warstwy `entrances`. */
@@ -146,6 +148,7 @@ export const trailTextsSchema = z.object({
   trail: z.object({
     name: z.string(),
     subtitle: z.string().optional(),
+    summary: z.string().optional(),
     descriptionHtml: z.string().optional(),
   }),
   entrances: z.record(slug, z.string()),
@@ -156,6 +159,8 @@ export const trailTextsSchema = z.object({
       html: z.string(),
       oppositeNote: z.string().optional(),
       captions: z.record(z.string(), z.string()),
+      /** Zdjęcia wstawione w tekst (`![podpis](07-1.jpg)`); pozostałe aplikacja dokłada na końcu. */
+      inlineImages: z.array(z.string()).default([]),
       audio: z.object({ file: z.string(), duration: z.number() }).optional(),
       /** true, gdy tekstu brakuje w tym języku i wstawiono język domyślny. */
       fallback: z.boolean().optional(),
@@ -203,6 +208,8 @@ export const manifestSchema = z.object({
       stopCount: z.number().int(),
       /** Miniatura zdjęcia tytułowego (ścieżka względem katalogu treści). */
       cover: z.string().optional(),
+      /** Uproszczone linie ścieżki i punkt na etykietę — do mapy przeglądu bez wczytywania paczki. */
+      overview: z.object({ lines: z.array(z.array(lonLat)), label: lonLat }),
       bbox: z.tuple([z.number(), z.number(), z.number(), z.number()]),
       files: z.array(manifestFileSchema),
     }),

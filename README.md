@@ -73,7 +73,7 @@ Spacer w aplikacji natywnej śledzi położenie także przy zablokowanym ekranie
 
 ```
 content/trails/<id>/          id: małe litery, cyfry, "-" i "_"
-  trail.yaml                  nazwa, opis, nazwy wejść, kierunek przewodnika
+  trail.yaml                  nazwa, krótki opis (summary), opis, nazwy wejść i końców, kierunek przewodnika
   trail.gpkg                  geometria (QGIS)
   cover.jpg                   zdjęcie tytułowe (opcjonalne)
   stops/
@@ -111,12 +111,18 @@ Progi walidacji można zmienić w `trail.yaml` (sekcja `validation`).
 ---
 title: Źródlisko
 oppositeNote: Idziesz w przeciwną stronę niż przewodnik — tablica jest po prawej.
-captions:
-  07-1.jpg: Wysięki wody w buczynie
 ---
 
-Treść w Markdownie.
+Wysięki wody tworzą podmokłe miejsca…
+
+![Wysięki wody w buczynie](07-1.jpg)
+
+Salamandra plamista…
 ```
+
+Zdjęcia wstawia się w tekst tam, gdzie stoją w publikacji; tekst w nawiasach kwadratowych
+jest podpisem i opisem dla czytników ekranu. Zdjęcia przystanku niewstawione w tekst aplikacja
+pokazuje na końcu opisu.
 
 Tekst w języku domyślnym jest wymagany. Brak tłumaczenia to ostrzeżenie — aplikacja
 pokaże wtedy wersję w języku domyślnym.

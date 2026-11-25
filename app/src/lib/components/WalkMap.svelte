@@ -11,6 +11,7 @@
     trail,
     visited,
     nextStopId,
+    selectedStopId = null,
     position,
     onTrail = true,
     rawFix,
@@ -24,6 +25,8 @@
     trail: TrailBundle;
     visited: string[];
     nextStopId: string | null;
+    /** Przystanek otwarty w arkuszu — wyróżniony na mapie. */
+    selectedStopId?: string | null;
     position: [number, number] | null;
     /** Poza ścieżką mapa nie podąża za pozycją (żeby nie uciec od ścieżki); środkuje dopiero przycisk. */
     onTrail?: boolean;
@@ -156,11 +159,13 @@
   // Stan przystanków: odwiedzone / następny / pozostałe.
   $effect(() => {
     if (!map) return;
+    void selectedStopId;
     const done = new Set(visited);
     for (const [id, a] of stopMarkers) {
       a.classList.toggle('visited', done.has(id));
       a.classList.toggle('next', id === nextStopId);
-      a.style.zIndex = id === nextStopId ? '2' : '1';
+      a.classList.toggle('selected', id === selectedStopId);
+      a.style.zIndex = id === selectedStopId ? '3' : id === nextStopId ? '2' : '1';
     }
   });
 
@@ -227,6 +232,26 @@
     updateEdge();
   });
 
+  /** Pokaż przystanek w widocznej części mapy (nad arkuszem). */
+  export function focusStop(id: string) {
+    const stop = trail.stops.find((x) => x.id === id);
+    if (!map || !stop) return;
+    follow = false;
+    map.easeTo({
+      center: stop.coord,
+      zoom: Math.max(map.getZoom(), 16),
+      padding: { top: topInset, bottom: bottomInset, left: 0, right: 0 },
+      duration: 500,
+    });
+  }
+
+  /** Cała ścieżka w widocznej części mapy. */
+  export function fitTrail() {
+    if (!map) return;
+    const [w, s, e, n] = trail.bbox;
+    map.fitBounds([w, s, e, n], { padding: { top: topInset + 36, bottom: bottomInset + 24, left: 32, right: 84 }, duration: 500 });
+  }
+
   export function centerOnMe() {
     follow = true;
     if (map && position) map.easeTo({ center: position, zoom: Math.max(map.getZoom(), 16), duration: 500 });
@@ -277,6 +302,15 @@
     font-size: 16px;
     background: var(--sand);
     border-color: var(--brown);
+  }
+  .map :global(.stop.selected) {
+    width: 42px;
+    height: 42px;
+    font-size: 17px;
+    background: var(--sand);
+    border: 3px solid var(--brown);
+    color: var(--brown);
+    box-shadow: 0 0 0 6px rgba(214, 178, 105, 0.35), 0 1px 3px rgba(0, 0, 0, 0.25);
   }
   .map :global(.entrance) {
     padding: 3px 8px;

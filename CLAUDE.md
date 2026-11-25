@@ -45,6 +45,9 @@ programistyczne i GIS (QGIS, Python). Komunikacja po polsku, zwracamy się „Pa
   nad arkuszem zawsze zostaje pas mapy, a mapa centruje się na przystanku w widocznej części
   przez cały czas (także w trakcie przeciągania). Nowy przystanek otwiera się od początku opisu,
   powrót do już otwieranego przywraca miejsce czytania (do zamknięcia aplikacji).
+  Jedna mapa MapLibre dla całej aplikacji (`lib/map-host.svelte.ts`, `MapRoot` w głównym układzie);
+  ekrany dodają/usuwają swoje warstwy i sterują kamerą — przegląd → ścieżka to jeden lot kamery
+  z wysuwającym się arkuszem, „wstecz” to płynne oddalenie.
   Szybki ruch w dół zwija do „nisko”. Bez gradientu i „Czytaj dalej” (decyzja właściciela:
   osobne „pół ekranu” i „cały ekran” to zbędne mnożenie bytów). Po dotarciu arkusz przystanku
   sam wysuwa się „nisko”.

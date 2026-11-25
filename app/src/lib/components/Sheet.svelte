@@ -13,7 +13,7 @@
 </script>
 
 <script lang="ts">
-  import type { Snippet } from 'svelte';
+  import { onMount, type Snippet } from 'svelte';
   import { t } from '$lib/i18n.svelte';
 
   let {
@@ -119,6 +119,13 @@
     }
   }
 
+  // Wejście na ekran: arkusz wysuwa się od dołu (razem z przelotem kamery).
+  let entering = $state(true);
+  onMount(() => {
+    let f = requestAnimationFrame(() => (f = requestAnimationFrame(() => (entering = false))));
+    return () => cancelAnimationFrame(f);
+  });
+
   function toggle() {
     if (moved || !children) return;
     pos = pos === 'peek' ? 'open' : 'peek';
@@ -127,7 +134,7 @@
 
 <svelte:window bind:innerHeight={viewport} />
 
-<div class="sheet-wrap" style:height="{height + aboveH}px" class:dragging={dragOffset !== null}>
+<div class="sheet-wrap" style:height="{height + aboveH}px" class:dragging={dragOffset !== null} class:entering>
   {#if above}
     <div class="above" bind:clientHeight={aboveH}>{@render above()}</div>
   {/if}
@@ -153,8 +160,13 @@
     z-index: 4;
     display: flex;
     flex-direction: column;
-    transition: height 0.28s cubic-bezier(0.2, 0.8, 0.2, 1);
+    transition:
+      height 0.28s cubic-bezier(0.2, 0.8, 0.2, 1),
+      transform 0.45s cubic-bezier(0.2, 0.8, 0.2, 1);
     pointer-events: none;
+  }
+  .sheet-wrap.entering {
+    transform: translateY(100%);
   }
   .sheet-wrap.dragging,
   .sheet-wrap.dragging .sheet {

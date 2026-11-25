@@ -1,11 +1,12 @@
-<!-- Mapa przeglądu: linie wszystkich ścieżek z etykietami nazw; bez przystanków i pozycji. -->
+<!--
+  Mapa przeglądu: linie wszystkich ścieżek z etykietami nazw; bez przystanków i pozycji.
+  Rysuje na wspólnej mapie (map-host); przy wejściu na ekran kamera płynnie oddala się do parku.
+-->
 <script lang="ts">
-  import 'maplibre-gl/dist/maplibre-gl.css';
   import maplibregl from 'maplibre-gl';
   import { onDestroy, onMount } from 'svelte';
   import type { Manifest } from '@sciezki/core';
-  import { basemapUrl } from '$lib/basemap';
-  import { basemapStyle } from '$lib/map-style';
+  import { mapHost } from '$lib/map-host.svelte';
 
   type Trail = Manifest['trails'][number];
 
@@ -24,14 +25,15 @@
     bounds: [number, number, number, number];
     topInset?: number;
     bottomInset?: number;
-    /** Po przybliżeniu do wybranej ścieżki — przejście do jej nawigacji. */
+    /** Wybór ścieżki — przejście do jej nawigacji (kamerę przejmuje ekran ścieżki). */
     onopen?: (id: string) => void;
   } = $props();
 
-  let container: HTMLDivElement;
   let map = $state.raw<maplibregl.Map | undefined>();
   const pills = new Map<string, HTMLButtonElement>();
+  const markers: maplibregl.Marker[] = [];
   let destroyed = false;
+  const LAYERS = ['trasy-obrys', 'trasy', 'trasy-dotyk'];
 
   const geojson = (): GeoJSON.FeatureCollection => ({
     type: 'FeatureCollection',
@@ -40,38 +42,25 @@
     ),
   });
 
+  function onLineClick(e: maplibregl.MapLayerMouseEvent) {
+    const id = e.features?.[0]?.properties?.id as string | undefined;
+    if (id) select(id);
+  }
+
+  const view = () =>
+    mapHost.frame(bounds, { top: topInset, bottom: bottomInset, left: 0, right: 0 }, { x: 24, y: 24 }, 15);
+
   onMount(async () => {
-    const bm = await basemapUrl().catch(() => null);
+    const m = await mapHost.ready();
     if (destroyed) return;
-    map = new maplibregl.Map({
-      container,
-      style: basemapStyle(bm?.url ?? null, '© OpenStreetMap contributors'),
-      bounds,
-      fitBoundsOptions: { padding: { top: topInset + 24, bottom: bottomInset + 24, left: 24, right: 24 } },
-      minZoom: 8,
-      maxZoom: 17,
-      attributionControl: bm ? { compact: true } : false,
-      dragRotate: false,
-      pitchWithRotate: false,
-    });
-    map.touchZoomRotate.disableRotation();
-    map.on('load', () => {
-      map!.addSource('trasy', { type: 'geojson', data: geojson() });
-      map!.addLayer({ id: 'trasy-obrys', type: 'line', source: 'trasy', layout: { 'line-cap': 'round', 'line-join': 'round' }, paint: { 'line-color': '#fff', 'line-width': ['case', ['==', ['get', 'id'], selected ?? ''], 11, 8] } });
-      map!.addLayer({
-        id: 'trasy',
-        type: 'line',
-        source: 'trasy',
-        layout: { 'line-cap': 'round', 'line-join': 'round' },
-        paint: { 'line-color': '#443425', 'line-width': ['case', ['==', ['get', 'id'], selected ?? ''], 6, 4] },
-      });
-      // Szerszy, niewidoczny pas ułatwia trafienie palcem w linię.
-      map!.addLayer({ id: 'trasy-dotyk', type: 'line', source: 'trasy', paint: { 'line-color': '#000', 'line-opacity': 0, 'line-width': 28 } });
-      map!.on('click', 'trasy-dotyk', (e) => {
-        const id = e.features?.[0]?.properties?.id as string | undefined;
-        if (id) select(id);
-      });
-    });
+    // Powrót ze ścieżki: płynne oddalenie do całego parku.
+    mapHost.move(view(), 900, true);
+    m.addSource('trasy', { type: 'geojson', data: geojson() });
+    m.addLayer({ id: 'trasy-obrys', type: 'line', source: 'trasy', layout: { 'line-cap': 'round', 'line-join': 'round' }, paint: { 'line-color': '#fff', 'line-width': 8 } });
+    m.addLayer({ id: 'trasy', type: 'line', source: 'trasy', layout: { 'line-cap': 'round', 'line-join': 'round' }, paint: { 'line-color': '#443425', 'line-width': 4 } });
+    // Szerszy, niewidoczny pas ułatwia trafienie palcem w linię.
+    m.addLayer({ id: 'trasy-dotyk', type: 'line', source: 'trasy', paint: { 'line-color': '#000', 'line-opacity': 0, 'line-width': 28 } });
+    m.on('click', 'trasy-dotyk', onLineClick);
     for (const tr of trails) {
       const b = document.createElement('button');
       b.className = 'trail-pill';
@@ -81,23 +70,32 @@
         select(tr.id);
       });
       pills.set(tr.id, b);
-      new maplibregl.Marker({ element: b }).setLngLat(tr.overview.label).addTo(map);
+      markers.push(new maplibregl.Marker({ element: b }).setLngLat(tr.overview.label).addTo(m));
     }
-  });
-  onDestroy(() => {
-    destroyed = true;
-    map?.remove();
+    map = m;
   });
 
-  /** Wybór ścieżki: wyróżnienie, płynne przybliżenie, potem przejście do nawigacji. */
+  onDestroy(() => {
+    destroyed = true;
+    if (!map) return;
+    map.off('click', 'trasy-dotyk', onLineClick);
+    for (const mk of markers) mk.remove();
+    for (const id of LAYERS) if (map.getLayer(id)) map.removeLayer(id);
+    if (map.getSource('trasy')) map.removeSource('trasy');
+  });
+
+  /** Wybór ścieżki: od razu jej ekran — lot kamery do ścieżki prowadzi już ekran ścieżki. */
   function select(id: string) {
     selected = id;
-    const tr = trails.find((x) => x.id === id);
-    if (!tr || !map) return;
-    const [w, s, e, n] = tr.bbox;
-    map.once('moveend', () => onopen?.(id));
-    map.fitBounds([w, s, e, n], { padding: { top: topInset + 40, bottom: bottomInset + 40, left: 40, right: 40 }, maxZoom: 15, duration: 700 });
+    onopen?.(id);
   }
+
+  // Wysokość arkusza i nagłówka znana dopiero po pierwszym rysowaniu — poprawka kadru.
+  $effect(() => {
+    void topInset;
+    void bottomInset;
+    if (map) mapHost.move(view(), 400);
+  });
 
   $effect(() => {
     if (!map) return;
@@ -117,28 +115,3 @@
     map.setPaintProperty('trasy-obrys', 'line-width', ['case', ['==', ['get', 'id'], sel], 11, 8]);
   });
 </script>
-
-<div class="map" bind:this={container}></div>
-
-<style>
-  .map {
-    position: absolute;
-    inset: 0;
-  }
-  .map :global(.trail-pill) {
-    padding: 6px 12px;
-    min-height: 32px;
-    border: none;
-    border-radius: 16px;
-    background: #fff;
-    box-shadow: 0 1px 4px rgba(46, 43, 40, 0.25);
-    font: 700 14px/1.2 Lato, sans-serif;
-    color: var(--brown);
-    white-space: nowrap;
-    cursor: pointer;
-  }
-  .map :global(.trail-pill.selected) {
-    background: var(--brown);
-    color: #fff;
-  }
-</style>

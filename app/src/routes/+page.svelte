@@ -66,11 +66,15 @@
 </div>
 
 <style>
+  /* Mapa jest wspólna (pod spodem, w głównym układzie); tu tylko elementy nad nią. */
   .screen {
     position: fixed;
     inset: 0;
     overflow: hidden;
-    background: #f3f1ea;
+    pointer-events: none;
+  }
+  .bar {
+    pointer-events: auto;
   }
   .top-stripe {
     position: absolute;

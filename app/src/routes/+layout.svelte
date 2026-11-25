@@ -8,6 +8,7 @@
   import { i18n } from '$lib/i18n.svelte';
   import { onNotificationTap } from '$lib/notify';
   import { registerBackButton } from '$lib/back';
+  import MapRoot from '$lib/components/MapRoot.svelte';
 
   let { children } = $props();
 
@@ -21,4 +22,6 @@
   registerBackButton();
 </script>
 
+<!-- Jedna mapa pod wszystkimi ekranami: przejścia między nimi to ruch kamery, nie nowa mapa. -->
+<MapRoot />
 {@render children()}

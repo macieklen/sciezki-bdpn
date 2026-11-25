@@ -1,8 +1,10 @@
+<!--
+  Ścieżka na wspólnej mapie (map-host): odcinki, wejścia, przystanki, pozycja. Kamera — przez
+  mapHost.move, więc wejście z przeglądu jest jednym płynnym przelotem.
+-->
 <script lang="ts">
-  import 'maplibre-gl/dist/maplibre-gl.css';
   import maplibregl from 'maplibre-gl';
-  import { basemapUrl } from '$lib/basemap';
-  import { basemapStyle } from '$lib/map-style';
+  import { mapHost } from '$lib/map-host.svelte';
   import { t } from '$lib/i18n.svelte';
   import { onDestroy, onMount } from 'svelte';
   import type { TrailBundle } from '@sciezki/core';
@@ -40,13 +42,14 @@
     follow?: boolean;
   } = $props();
 
-  let container: HTMLDivElement;
-  // $state.raw: efekty poniżej uruchamiają się ponownie, gdy mapa powstanie (asynchronicznie).
+  // Mapa z warstwami tej ścieżki ($state.raw: efekty poniżej ruszają po jej przygotowaniu).
   let map = $state.raw<maplibregl.Map | undefined>();
   const stopMarkers = new Map<string, HTMLAnchorElement>();
   const entranceLabels = new Map<string, HTMLElement>();
+  const markers: maplibregl.Marker[] = [];
   let me: maplibregl.Marker | undefined;
   let raw: maplibregl.Marker | undefined;
+  const LAYERS = ['odcinki-obrys', 'odcinki-inne', 'odcinki-trasa'];
 
   function segmentsGeoJSON(): GeoJSON.FeatureCollection {
     // Bez narzuconej trasy wszystkie odcinki są „trasą”; pole zostaje do ewentualnego wyróżniania.
@@ -68,58 +71,42 @@
     return e;
   }
 
+  const onDragStart = () => (follow = false);
+  const onZoom = () => mapHost.map?.getContainer().classList.toggle('map-far', mapHost.map.getZoom() < FAR_ZOOM);
+
   let destroyed = false;
   onMount(async () => {
-    const bm = await basemapUrl().catch(() => null);
+    const m = await mapHost.ready();
     if (destroyed) return;
-    const [w, s, e, n] = trail.bbox;
-    map = new maplibregl.Map({
-      container,
-      style: basemapStyle(bm?.url ?? null, '© OpenStreetMap contributors'),
-      bounds: [w, s, e, n],
-      // Kadr ścieżki omija górną kartę, dolny panel i przyciski po prawej (+ zapas na etykiety).
-      fitBoundsOptions: { padding: { top: topInset + 36, bottom: bottomInset + 24, left: 32, right: 84 } },
-      minZoom: 9,
-      maxZoom: 18,
-      attributionControl: bm ? { compact: true } : false,
-      dragRotate: false,
-      pitchWithRotate: false,
-    });
-    map.touchZoomRotate.disableRotation();
-    map.on('dragstart', () => (follow = false));
-    map.on('move', updateEdge);
-    map.on('zoom', () => (far = map!.getZoom() < FAR_ZOOM));
-    // Stojący telefon nie przysyła nowych odczytów — przelicz znacznik zaraz po załadowaniu mapy.
-    map.on('load', updateEdge);
-    map.on('resize', updateEdge);
+    m.on('dragstart', onDragStart);
+    m.on('move', updateEdge);
+    m.on('zoom', onZoom);
+    m.on('resize', updateEdge);
+    onZoom();
 
-    map.on('load', () => {
-      // Otwarty przystanek (np. z powiadomienia): od razu na środku widocznej części mapy.
-      if (selectedStopId) focusStop(selectedStopId, 0, true);
-      map!.addSource('odcinki', { type: 'geojson', data: segmentsGeoJSON() });
-      map!.addLayer({
-        id: 'odcinki-obrys',
-        type: 'line',
-        source: 'odcinki',
-        layout: { 'line-cap': 'round', 'line-join': 'round' },
-        paint: { 'line-color': '#ffffff', 'line-width': 9 },
-      });
-      map!.addLayer({
-        id: 'odcinki-inne',
-        type: 'line',
-        source: 'odcinki',
-        filter: ['==', ['get', 'onRoute'], false],
-        layout: { 'line-cap': 'round', 'line-join': 'round' },
-        paint: { 'line-color': '#84725a', 'line-width': 3, 'line-dasharray': [1.5, 2] },
-      });
-      map!.addLayer({
-        id: 'odcinki-trasa',
-        type: 'line',
-        source: 'odcinki',
-        filter: ['==', ['get', 'onRoute'], true],
-        layout: { 'line-cap': 'round', 'line-join': 'round' },
-        paint: { 'line-color': '#443425', 'line-width': 5 },
-      });
+    m.addSource('odcinki', { type: 'geojson', data: segmentsGeoJSON() });
+    m.addLayer({
+      id: 'odcinki-obrys',
+      type: 'line',
+      source: 'odcinki',
+      layout: { 'line-cap': 'round', 'line-join': 'round' },
+      paint: { 'line-color': '#ffffff', 'line-width': 9 },
+    });
+    m.addLayer({
+      id: 'odcinki-inne',
+      type: 'line',
+      source: 'odcinki',
+      filter: ['==', ['get', 'onRoute'], false],
+      layout: { 'line-cap': 'round', 'line-join': 'round' },
+      paint: { 'line-color': '#84725a', 'line-width': 3, 'line-dasharray': [1.5, 2] },
+    });
+    m.addLayer({
+      id: 'odcinki-trasa',
+      type: 'line',
+      source: 'odcinki',
+      filter: ['==', ['get', 'onRoute'], true],
+      layout: { 'line-cap': 'round', 'line-join': 'round' },
+      paint: { 'line-color': '#443425', 'line-width': 5 },
     });
 
     for (const ent of trail.entrances) {
@@ -129,9 +116,9 @@
       entranceLabels.set(ent.id, label);
       // Etykieta przy samej prawej krawędzi ścieżki idzie na lewo od punktu (inaczej wchodzi pod przyciski).
       const onRight = node.coord[0] > trail.bbox[0] + 0.85 * (trail.bbox[2] - trail.bbox[0]);
-      new maplibregl.Marker({ element: label, anchor: onRight ? 'right' : 'left', offset: [onRight ? -10 : 10, 0] })
-        .setLngLat(node.coord)
-        .addTo(map);
+      markers.push(
+        new maplibregl.Marker({ element: label, anchor: onRight ? 'right' : 'left', offset: [onRight ? -10 : 10, 0] }).setLngLat(node.coord).addTo(m),
+      );
     }
 
     for (const stop of trail.stops) {
@@ -139,16 +126,29 @@
       a.href = stopHref(stop.id);
       a.setAttribute('aria-label', `${stop.number}. ${stopTitle(stop.id)}`);
       stopMarkers.set(stop.id, a);
-      new maplibregl.Marker({ element: a }).setLngLat(stop.coord).addTo(map);
+      markers.push(new maplibregl.Marker({ element: a }).setLngLat(stop.coord).addTo(m));
     }
 
     raw = new maplibregl.Marker({ element: el('div', 'raw') });
     me = new maplibregl.Marker({ element: el('div', 'me') });
+    map = m;
+    // Stojący telefon nie przysyła nowych odczytów — przelicz znacznik od razu.
+    updateEdge();
   });
 
   onDestroy(() => {
     destroyed = true;
-    map?.remove();
+    if (!map) return;
+    map.off('dragstart', onDragStart);
+    map.off('move', updateEdge);
+    map.off('zoom', onZoom);
+    map.off('resize', updateEdge);
+    map.getContainer().classList.remove('map-far');
+    for (const mk of markers) mk.remove();
+    me?.remove();
+    raw?.remove();
+    for (const id of LAYERS) if (map.getLayer(id)) map.removeLayer(id);
+    if (map.getSource('odcinki')) map.removeSource('odcinki');
   });
 
   // Nazwy wejść i opisy przystanków docierają po wczytaniu tekstów (i zmieniają się z językiem).
@@ -192,7 +192,6 @@
 
   // Przy dużym oddaleniu przystanki i etykiety zlewają się — chowamy je, zostaje linia ścieżki.
   const FAR_ZOOM = 11;
-  let far = $state(false);
 
   // ── Znacznik pozycji na krawędzi mapy, gdy pozycja jest poza widokiem ──
   // Tylko kierunek: odległość od ścieżki pokazuje dolny panel (odległość od środka widoku myliła).
@@ -200,13 +199,13 @@
   const EDGE_MARGIN = 38;
 
   function updateEdge() {
-    if (!map || !position || !container) {
+    if (!map || !position) {
       edge = null;
       return;
     }
     const p = map.project(position);
-    const w = container.clientWidth;
-    const h = container.clientHeight;
+    const w = map.getContainer().clientWidth;
+    const h = map.getContainer().clientHeight;
     const r = { l: EDGE_MARGIN, t: topInset + EDGE_MARGIN, r: w - EDGE_MARGIN, b: h - bottomInset - EDGE_MARGIN };
     if (r.b <= r.t || (p.x >= r.l && p.x <= r.r && p.y >= r.t && p.y <= r.b)) {
       edge = null;
@@ -237,36 +236,37 @@
   /**
    * Pokaż przystanek na środku widocznej części mapy (nad arkuszem).
    * `duration` 0 — natychmiast (w trakcie przeciągania arkusza, w każdej klatce).
+   * Działa od razu po utworzeniu wspólnej mapy (kamera nie czeka na warstwy).
    */
   export function focusStop(id: string, duration = 300, zoomIn = false) {
+    const m = mapHost.map;
     const stop = trail.stops.find((x) => x.id === id);
-    if (!map || !stop) return;
+    if (!m || !stop) return;
     follow = false;
     const padding = { top: topInset, bottom: bottomInset, left: 0, right: 0 };
     // Docelowe przybliżenie z otwarcia przystanku obowiązuje, dopóki trwa animacja —
     // kolejne wywołania (zmiana wysokości arkusza) nie mogą jej przerwać w pół drogi.
-    if (zoomIn) stopZoom = Math.max(map.getZoom(), 16);
-    const zoom = zoomIn || map.isMoving() ? (stopZoom ?? map.getZoom()) : map.getZoom();
-    if (duration === 0) map.jumpTo({ center: stop.coord, zoom, padding });
-    else map.easeTo({ center: stop.coord, zoom, padding, duration });
+    if (zoomIn) stopZoom = Math.max(m.getZoom(), 16);
+    const zoom = zoomIn || m.isMoving() ? (stopZoom ?? m.getZoom()) : m.getZoom();
+    mapHost.move({ center: stop.coord, zoom, padding }, duration);
   }
 
   let stopZoom: number | null = null;
 
-  /** Cała ścieżka w widocznej części mapy. */
-  export function fitTrail() {
-    if (!map) return;
-    const [w, s, e, n] = trail.bbox;
-    map.fitBounds([w, s, e, n], { padding: { top: topInset + 16, bottom: bottomInset + 16, left: 24, right: 24 }, duration: 500 });
+  /** Cała ścieżka w widocznej części mapy; `flight` — przelot z innego ekranu. */
+  export function fitTrail(duration = 500, flight = false) {
+    if (!mapHost.map) return;
+    const insets = { top: topInset, bottom: bottomInset, left: 0, right: 0 };
+    mapHost.move(mapHost.frame(trail.bbox, insets, { x: 24, y: 16 }), duration, flight);
   }
 
   export function centerOnMe() {
+    const m = mapHost.map;
     follow = true;
-    if (map && position) map.easeTo({ center: position, zoom: Math.max(map.getZoom(), 16), duration: 500 });
+    if (m && position) m.easeTo({ center: position, zoom: Math.max(m.getZoom(), 16), duration: 500 });
   }
 </script>
 
-<div class="map" class:far bind:this={container}></div>
 {#if edge}
   <button
     class="edge-marker"
@@ -281,69 +281,9 @@
 {/if}
 
 <style>
-  .map {
-    position: absolute;
-    inset: 0;
-  }
-  .map :global(.stop) {
-    width: 30px;
-    height: 30px;
-    border-radius: 50%;
-    background: #fff;
-    border: 2.5px solid var(--brown);
-    color: var(--brown);
-    font: 900 13px/1 Lato, sans-serif;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    text-decoration: none;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
-  }
-  .map :global(.stop.visited) {
-    background: var(--green);
-    border-color: #fff;
-    color: #fff;
-  }
-  .map :global(.stop.next) {
-    width: 38px;
-    height: 38px;
-    font-size: 16px;
-    background: var(--sand);
-    border-color: var(--brown);
-  }
-  .map :global(.stop.selected) {
-    width: 42px;
-    height: 42px;
-    font-size: 17px;
-    background: var(--sand);
-    border: 3px solid var(--brown);
-    color: var(--brown);
-    box-shadow: 0 0 0 6px rgba(214, 178, 105, 0.35), 0 1px 3px rgba(0, 0, 0, 0.25);
-  }
-  .map :global(.entrance) {
-    padding: 3px 8px;
-    border-radius: 10px;
-    background: rgba(255, 255, 255, 0.92);
-    color: var(--brown);
-    font: 700 12px/1.2 Lato, sans-serif;
-    white-space: nowrap;
-    pointer-events: none;
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
-  }
-  .map :global(.me) {
-    width: 20px;
-    height: 20px;
-    border-radius: 50%;
-    background: #2f6fb0;
-    border: 3px solid #fff;
-    box-shadow: 0 0 0 10px rgba(47, 111, 176, 0.18), 0 1px 3px rgba(0, 0, 0, 0.3);
-  }
-  .map.far :global(.stop),
-  .map.far :global(.entrance) {
-    visibility: hidden;
-  }
   .edge-marker {
     position: absolute;
+    pointer-events: auto;
     z-index: 2;
     width: 44px;
     height: 44px;
@@ -377,11 +317,5 @@
     background: #2f6fb0;
     border: 3px solid #fff;
     box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
-  }
-  .map :global(.raw) {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    background: rgba(46, 43, 40, 0.45);
   }
 </style>

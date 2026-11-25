@@ -16,6 +16,7 @@
   import { walk } from '$lib/walk.svelte';
   import Icon from '$lib/components/Icon.svelte';
   import WalkMap from '$lib/components/WalkMap.svelte';
+  import { mapHost } from '$lib/map-host.svelte';
 
   let { data, children } = $props();
   const trail = $derived(data.trail);
@@ -76,18 +77,22 @@
   // …i trzymamy go na środku przy każdej zmianie wysokości arkusza: w trakcie przeciągania
   // w każdej klatce, przy przełączeniu położeń — płynnie, razem z animacją arkusza (~0,3 s).
   let lastStop: string | null = null;
+  // Pierwszy kadr po wejściu na ekran ścieżki to przelot z przeglądu (jeden ciągły ruch kamery).
+  let entered = false;
   $effect(() => {
     const id = selectedStopId;
     const dragging = nav.sheetDragging;
     void nav.sheetHeight;
-    if (!mapRef) return;
+    if (!mapRef || !mapHost.map) return;
     if (!id) {
       // Ekran ścieżki: cała ścieżka w pasie mapy nad arkuszem (po powrocie z przystanku
       // i po puszczeniu uchwytu arkusza).
-      if (!dragging) mapRef.fitTrail();
+      if (!dragging) mapRef.fitTrail(entered ? 500 : 1000, !entered);
+      entered = true;
       lastStop = null;
       return;
     }
+    entered = true;
     const isNew = id !== lastStop;
     lastStop = id;
     mapRef.focusStop(id, dragging ? 0 : isNew ? 500 : 280, isNew);
@@ -136,11 +141,16 @@
 </div>
 
 <style>
+  /* Mapa jest wspólna (pod spodem, w głównym układzie); tu tylko elementy nad nią. */
   .screen {
     position: fixed;
     inset: 0;
     overflow: hidden;
-    background: #e9eddf;
+    pointer-events: none;
+  }
+  .back,
+  .fabs {
+    pointer-events: auto;
   }
   .top-stripe {
     position: absolute;

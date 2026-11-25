@@ -1,0 +1,95 @@
+/* Znaczniki HTML na wspólnej mapie (przegląd: etykiety ścieżek; ścieżka: przystanki, wejścia, pozycja). */
+
+.trail-pill {
+  padding: 6px 12px;
+  min-height: 32px;
+  border: none;
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: 0 1px 4px rgba(46, 43, 40, 0.25);
+  font: 700 14px/1.2 Lato, sans-serif;
+  color: var(--brown);
+  white-space: nowrap;
+  cursor: pointer;
+}
+.trail-pill.selected {
+  background: var(--brown);
+  color: #fff;
+}
+
+.stop {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: #fff;
+  border: 2.5px solid var(--brown);
+  color: var(--brown);
+  font: 900 13px/1 Lato, sans-serif;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+}
+.stop.visited {
+  background: var(--green);
+  border-color: #fff;
+  color: #fff;
+}
+.stop.next {
+  width: 38px;
+  height: 38px;
+  font-size: 16px;
+  background: var(--sand);
+  border-color: var(--brown);
+}
+.stop.selected {
+  width: 42px;
+  height: 42px;
+  font-size: 17px;
+  background: var(--sand);
+  border: 3px solid var(--brown);
+  color: var(--brown);
+  box-shadow: 0 0 0 6px rgba(214, 178, 105, 0.35), 0 1px 3px rgba(0, 0, 0, 0.25);
+}
+.entrance {
+  padding: 3px 8px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.92);
+  color: var(--brown);
+  font: 700 12px/1.2 Lato, sans-serif;
+  white-space: nowrap;
+  pointer-events: none;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
+}
+.me {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #2f6fb0;
+  border: 3px solid #fff;
+  box-shadow: 0 0 0 10px rgba(47, 111, 176, 0.18), 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+.raw {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: rgba(46, 43, 40, 0.45);
+}
+/* Przy dużym oddaleniu przystanki i etykiety zlewają się — zostaje linia ścieżki. */
+.map-far .stop,
+.map-far .entrance {
+  visibility: hidden;
+}
+
+/* Znaczniki pojawiają się łagodnie (przejścia między ekranami). */
+.trail-pill,
+.stop,
+.entrance {
+  animation: marker-in 0.35s ease-out;
+}
+@keyframes marker-in {
+  from {
+    opacity: 0;
+  }
+}

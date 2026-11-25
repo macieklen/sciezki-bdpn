@@ -35,9 +35,13 @@ programistyczne i GIS (QGIS, Python). Komunikacja po polsku, zwracamy się „Pa
 - **Przegląd i nawigacja** (gałąź `eksperyment-arkusz`): ekran startowy = mapa wszystkich ścieżek
   z etykietami nazw (bez przystanków i pozycji), dotknięcie → arkusz z krótkim opisem (`summary`
   w trail.yaml) i „Otwórz ścieżkę”. Nawigacja = mapa przez cały czas + arkusze od dołu: ciemny
-  arkusz spaceru oraz arkusz przystanku w położeniach nisko / pół ekranu / cały ekran
-  (`components/Sheet.svelte`; ruch w górę w treści rozwija, gradient + „Czytaj dalej”; krótki
-  tekst bez trybu pełnoekranowego). Po dotarciu arkusz przystanku sam wysuwa się „nisko”.
+  arkusz spaceru oraz arkusz przystanku w dwóch położeniach: „nisko” (tytuł, nagranie) i otwarty
+  z pełną, przewijaną treścią (`components/Sheet.svelte`). Wysokość otwartego arkusza ustawia
+  użytkownik, przeciągając uchwyt — bez stałych pozycji, zapamiętywana dla kolejnych przystanków;
+  nad arkuszem zawsze zostaje pas mapy, a mapa centruje się na przystanku w widocznej części.
+  Szybki ruch w dół zwija do „nisko”. Bez gradientu i „Czytaj dalej” (decyzja właściciela:
+  osobne „pół ekranu” i „cały ekran” to zbędne mnożenie bytów). Po dotarciu arkusz przystanku
+  sam wysuwa się „nisko”.
   Śledzenie w tle dopiero po „Rozpocznij spacer” (wcześniej tylko podgląd pozycji przy otwartej
   aplikacji). Zdjęcia w tekście przystanku: `![podpis](07-1.jpg)` w Markdownie; niewstawione
   dokładane na końcu. Odtwarzacz: przycisk 44 px ciemnoszary `#4E4C4D` z białym znakiem,

@@ -26,11 +26,11 @@
   });
   const text = $derived(tx?.stops[stop.id]);
 
-  // Położenie arkusza: „nisko” po automatycznym otwarciu (dotarcie), inaczej pół ekranu.
-  let sheet = $state<SheetState>('half');
+  // Położenie arkusza: „nisko” po automatycznym otwarciu (dotarcie), inaczej otwarty na wysokości wybranej ostatnio.
+  let sheet = $state<SheetState>('open');
   $effect.pre(() => {
     void stop.id;
-    sheet = nav.takeStopState('half');
+    sheet = nav.takeStopState('open');
   });
 
   const query = $derived(page.url.search);
@@ -62,7 +62,7 @@
 
 <svelte:head><title>{text ? `${text.title} · ${tx?.trail.name}` : 'BdPN'}</title></svelte:head>
 
-<Sheet bind:pos={sheet} label={text?.title ?? stop.id} onheight={(h) => (nav.sheetHeight = h)}>
+<Sheet bind:pos={sheet} bind:openHeight={nav.stopOpenHeight} label={text?.title ?? stop.id} onheight={(h) => (nav.sheetHeight = h)}>
   {#snippet above()}
     {#if walking}
       <a class="walk-line" href={closeHref}>

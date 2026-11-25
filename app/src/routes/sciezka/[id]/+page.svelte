@@ -154,7 +154,7 @@
           {/if}
         {/if}
       {/if}
-      <button class="list-toggle" onclick={() => (sheet = sheet === 'peek' ? 'half' : 'peek')}>
+      <button class="list-toggle" onclick={() => (sheet = sheet === 'peek' ? 'open' : 'peek')}>
         <Icon name="down" size={18} strokeWidth={2} />
         {t().allStops}
       </button>
